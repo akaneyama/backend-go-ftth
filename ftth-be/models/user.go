@@ -10,4 +10,5 @@ type User struct {
 	Role      int       `gorm:"default:3" json:"role"` // 1=Admin, 2=Teknisi, 3=User
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
+	IsDeleted int       `gorm:"default:0" json:"is_deleted"`
 }

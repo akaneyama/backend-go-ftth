@@ -35,7 +35,6 @@ func CreateUser(c *fiber.Ctx) error {
 	return utils.Success(c, "success insert data", nil)
 }
 
-// LOGIN USER (pakai email)
 func LoginUser(c *fiber.Ctx) error {
 	var login models.User
 	if err := c.BodyParser(&login); err != nil {
@@ -56,24 +55,21 @@ func LoginUser(c *fiber.Ctx) error {
 		return utils.Failed(c, "invalid password")
 	}
 
-	token, err := utils.GenerateJWT(user.Email, user.Role)
+	token, err := utils.GenerateJWT(user.Email, user.Role, user.Fullname)
 	if err != nil {
 		return utils.Error(c, "failed generate jwt")
 	}
 
-	// Jangan kirim password di response
 	user.Password = ""
 
 	return utils.Success(c, "login success", fiber.Map{
 		"token": token,
-		"user":  user,
 	})
 }
 
-// GET ALL USERS
 func GetUsers(c *fiber.Ctx) error {
 	var users []models.User
-	config.DB.Find(&users)
+	config.DB.Where("is_deleted = ?", 0).Find(&users)
 
 	for i := range users {
 		users[i].Password = ""
@@ -86,9 +82,9 @@ func GetUsers(c *fiber.Ctx) error {
 func GetUser(c *fiber.Ctx) error {
 	id := c.Params("id")
 	var user models.User
-	result := config.DB.First(&user, id)
+	result := config.DB.Where("id = ? AND is_deleted = ?", id, 0).First(&user)
 	if result.Error != nil {
-		return utils.Failed(c, "user not found")
+		return utils.Failed(c, "user not found or deleted")
 	}
 
 	user.Password = ""
@@ -123,8 +119,20 @@ func UpdateUser(c *fiber.Ctx) error {
 // DELETE USER
 func DeleteUser(c *fiber.Ctx) error {
 	id := c.Params("id")
-	if err := config.DB.Delete(&models.User{}, id).Error; err != nil {
-		return utils.Failed(c, "failed delete data")
+
+	var user models.User
+	if err := config.DB.First(&user, id).Error; err != nil {
+		return utils.Failed(c, "user not found")
 	}
-	return utils.Success(c, "success delete data", nil)
+
+	if user.IsDeleted == 1 {
+		return utils.Failed(c, "user already deleted")
+	}
+
+	user.IsDeleted = 1
+	if err := config.DB.Save(&user).Error; err != nil {
+		return utils.Error(c, "failed to mark user as deleted")
+	}
+
+	return utils.Success(c, "success soft delete user", nil)
 }
