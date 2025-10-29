@@ -7,7 +7,9 @@ import (
 )
 
 func RunMigrations() {
-	err := config.DB.AutoMigrate(&models.User{})
+	err := config.DB.AutoMigrate(
+		&models.User{},
+		&models.Router{})
 	if err != nil {
 		fmt.Println("Migration failed:", err)
 	} else {

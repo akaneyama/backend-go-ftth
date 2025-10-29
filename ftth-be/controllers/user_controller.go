@@ -9,7 +9,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// REGISTER USER
 func CreateUser(c *fiber.Ctx) error {
 	var user models.User
 	if err := c.BodyParser(&user); err != nil {
@@ -20,7 +19,6 @@ func CreateUser(c *fiber.Ctx) error {
 		return utils.Failed(c, "email and password are required")
 	}
 
-	// Default role = 3 (user)
 	if user.Role == 0 {
 		user.Role = 3
 	}
@@ -78,7 +76,6 @@ func GetUsers(c *fiber.Ctx) error {
 	return utils.Success(c, "success retrieve data", users)
 }
 
-// GET SINGLE USER
 func GetUser(c *fiber.Ctx) error {
 	id := c.Params("id")
 	var user models.User
@@ -91,7 +88,6 @@ func GetUser(c *fiber.Ctx) error {
 	return utils.Success(c, "success retrieve data", user)
 }
 
-// UPDATE USER
 func UpdateUser(c *fiber.Ctx) error {
 	id := c.Params("id")
 	var user models.User
@@ -116,7 +112,6 @@ func UpdateUser(c *fiber.Ctx) error {
 	return utils.Success(c, "success update data", nil)
 }
 
-// DELETE USER
 func DeleteUser(c *fiber.Ctx) error {
 	id := c.Params("id")
 

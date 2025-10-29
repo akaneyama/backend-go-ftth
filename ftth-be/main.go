@@ -29,6 +29,7 @@ func main() {
 		AllowCredentials: true,
 	}))
 	routes.UserRoutes(app)
+	routes.RouterRoutes(app)
 
 	app.Listen(":8080")
 }

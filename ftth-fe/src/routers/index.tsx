@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 
 import MainLoginScreen from '../screens/LoginScreen/MainLoginScreen';
 import ScrollToTop from '../components/Motion/ScrollToTop';
+import MainRegisterScreen from '../screens/RegisterScreen/MainRegisterScreen';
 function Router(){
     return (
       <>
@@ -33,6 +34,7 @@ function Router(){
               
         </Route> */}
           <Route path="/login" element={<MainLoginScreen />} />
+          <Route path="/register" element={<MainRegisterScreen />} />
         </Routes>
         </>
       );
