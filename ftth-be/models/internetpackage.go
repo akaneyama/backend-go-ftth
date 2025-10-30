@@ -1,8 +1,10 @@
 package models
 
-import "time"
+import (
+	"time"
+)
 
-type packages struct {
+type Internetpackage struct {
 	PackageID    int       `gorm:"type:int;primaryKey;autoIncrement" json:"package_id"`
 	PackageName  string    `gorm:"type:varchar(200)" json:"package_name"`
 	PackageLimit string    `gorm:"type:varchar(100)" json:"package_limit"` // 10/10 (upload / download)

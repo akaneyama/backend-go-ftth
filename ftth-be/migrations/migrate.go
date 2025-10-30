@@ -9,7 +9,7 @@ import (
 func RunMigrations() {
 	err := config.DB.AutoMigrate(
 		&models.User{},
-		&models.Router{})
+		&models.Router{}, &models.Internetpackage{})
 	if err != nil {
 		fmt.Println("Migration failed:", err)
 	} else {
