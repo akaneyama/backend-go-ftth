@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview"
   },
-"dependencies": {
+  "dependencies": {
     "@headlessui/react": "^2.2.9",
     "@phosphor-icons/react": "^2.1.10",
     "axios": "^1.12.2",
@@ -17,6 +17,7 @@
     "clsx": "^2.1.1",
     "daffawebsite": "file:",
     "framer-motion": "^12.23.12",
+    "ftth-fe": "file:",
     "html2canvas": "^1.4.1",
     "i18next": "^25.5.2",
     "i18next-browser-languagedetector": "^8.2.0",
