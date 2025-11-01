@@ -12,6 +12,7 @@ import (
 )
 
 func main() {
+
 	err := godotenv.Load()
 	if err != nil {
 		log.Println("No .env file found")
@@ -30,6 +31,8 @@ func main() {
 	}))
 	routes.UserRoutes(app)
 	routes.RouterRoutes(app)
+	routes.InterfaceMonitoringRoutes(app)
+	routes.InterfaceTrafficRoutes(app)
 
 	app.Listen(":8080")
 }

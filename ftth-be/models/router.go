@@ -20,6 +20,8 @@ type Router struct {
 	CreatedAt        time.Time `json:"created_at"`
 	UpdatedAt        time.Time `json:"updated_at"`
 	IsDeleted        int       `gorm:"default:0" json:"is_deleted"`
+
+	Interfaces []InterfaceMonitoring `gorm:"foreignKey:RouterID;references:RouterID"`
 }
 
 func (r *Router) BeforeCreate(tx *gorm.DB) (err error) {
