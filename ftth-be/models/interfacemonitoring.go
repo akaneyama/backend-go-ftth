@@ -7,7 +7,6 @@ import (
 )
 
 type InterfaceMonitoring struct {
-	// Pastikan ini 'int'
 	InterfaceID int `gorm:"primaryKey;autoIncrement" json:"interface_id"`
 
 	InterfaceName string    `gorm:"type:varchar(120);not null" json:"interface_name"`

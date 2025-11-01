@@ -3,9 +3,7 @@ package models
 import "time"
 
 type InterfaceTraffic struct {
-	TrafficID int `gorm:"primaryKey;autoIncrement" json:"traffic_id"`
-
-	// Pastikan ini juga 'int' agar konsisten
+	TrafficID   int `gorm:"primaryKey;autoIncrement" json:"traffic_id"`
 	InterfaceID int `gorm:"not null" json:"interface_id"`
 
 	DownloadSpeed float64
