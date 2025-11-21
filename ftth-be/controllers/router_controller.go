@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	services "akane/be-ftth/Services"
 	"akane/be-ftth/config"
 	"akane/be-ftth/models"
 	"akane/be-ftth/utils"
@@ -103,18 +104,80 @@ func UpdateRouter(c *fiber.Ctx) error {
 func DeleteRouter(c *fiber.Ctx) error {
 	id := c.Params("id")
 	var router models.Router
-	if err := config.DB.First(&router, id).Error; err != nil {
-		return utils.Failed(c, "router not found")
+	err := config.DB.Where("router_id = ? AND is_deleted = 0", id).First(&router).Error
+
+	if err != nil {
+		return utils.Failed(c, "Router tidak ditemukan atau ID tidak valid")
 	}
 
 	if router.IsDeleted == 1 {
-		return utils.Failed(c, "router already deleted")
+		return utils.Failed(c, "Router sudah dihapus sebelumnya")
 	}
-
 	router.IsDeleted = 1
 	if err := config.DB.Save(&router).Error; err != nil {
-		return utils.Error(c, "failed to mark router as deleted")
+		return utils.Error(c, "Gagal menghapus data router")
 	}
 
-	return utils.Success(c, "success delete router", nil)
+	return utils.Success(c, "Sukses menghapus router", nil)
+}
+
+func CheckRouterConnection(c *fiber.Ctx) error {
+	id := c.Params("id")
+	var router models.Router
+
+	if err := config.DB.Where("router_id = ? AND is_deleted = 0", id).First(&router).Error; err != nil {
+		return utils.Failed(c, "Router tidak ditemukan")
+	}
+	decryptedPass, err := utils.DecryptAES(router.RouterPassword)
+	if err != nil {
+		return utils.Failed(c, "Gagal mendekripsi password router")
+	}
+
+	info, err := services.GetRouterSystemInfo(
+		router.RouterAddress,
+		router.RouterPort,
+		router.RouterUsername,
+		decryptedPass,
+		router.RouterRemoteType,
+	)
+
+	if err != nil {
+		return utils.Failed(c, err.Error())
+	}
+
+	return utils.Success(c, "Koneksi Berhasil & Data Ditemukan", fiber.Map{
+		"router_name": router.RouterName,
+		"router_ip":   router.RouterAddress,
+		"system_info": info,
+	})
+}
+func TestRouterConnection(c *fiber.Ctx) error {
+	var payload models.Router
+	if err := c.BodyParser(&payload); err != nil {
+		return utils.Failed(c, "Invalid request body")
+	}
+
+	if payload.RouterAddress == "" || payload.RouterUsername == "" || payload.RouterPassword == "" {
+		return utils.Failed(c, "IP, Username, dan Password harus diisi untuk tes koneksi")
+	}
+
+	if payload.RouterPort == 0 {
+		payload.RouterPort = 8728
+	}
+
+	info, err := services.GetRouterSystemInfo(
+		payload.RouterAddress,
+		payload.RouterPort,
+		payload.RouterUsername,
+		payload.RouterPassword,
+		payload.RouterRemoteType,
+	)
+
+	if err != nil {
+		return utils.Failed(c, "Koneksi Gagal: "+err.Error())
+	}
+
+	return utils.Success(c, "Koneksi Berhasil", fiber.Map{
+		"system_info": info,
+	})
 }

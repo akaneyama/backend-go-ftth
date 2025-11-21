@@ -15,4 +15,5 @@ func RouterRoutes(app *fiber.App) {
 	api.Get("/routers/:id", middleware.JWTProtected(), middleware.RoleAdmin(), controllers.GetRouter)
 	api.Put("/routers/:id", middleware.JWTProtected(), middleware.RoleAdmin(), controllers.UpdateRouter)
 	api.Delete("/routers/:id", middleware.JWTProtected(), middleware.RoleAdmin(), controllers.DeleteRouter)
+	api.Post("/routers/test-connection", middleware.JWTProtected(), middleware.RoleAdmin(), controllers.TestRouterConnection)
 }

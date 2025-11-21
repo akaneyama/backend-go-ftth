@@ -3,6 +3,7 @@ module akane/be-ftth
 go 1.25.3
 
 require (
+	github.com/go-routeros/routeros v0.0.0-20210123142807-2a44d57c6730
 	github.com/gofiber/fiber/v2 v2.52.9
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/google/uuid v1.6.0

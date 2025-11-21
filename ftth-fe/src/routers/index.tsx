@@ -1,44 +1,39 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-
-
 import MainLoginScreen from '../screens/LoginScreen/MainLoginScreen';
 import ScrollToTop from '../components/Motion/ScrollToTop';
-import MainRegisterScreen from '../screens/RegisterScreen/MainRegisterScreen';
+// import MainRegisterScreen from '../screens/RegisterScreen/MainRegisterScreen'; // Jika ada
+
+// Import Dashboard baru
+import DashboardLayout from './DashboardLayout/DashboardLayout';
+import DashboardHome from '../screens/Dashboard/DashboardHome';
+import RouterListScreen from '../screens/RouterScreen/RouterListScreen';
+import RouterFormScreen from '../screens/RouterScreen/RouterFormScreen';
+import InterfaceFormScreen from '../screens/InterfaceScreen/InterfaceFormScreen';
+import InterfaceListScreen from '../screens/InterfaceScreen/InterfaceListScreen';
+
 function Router(){
     return (
       <>
       <ScrollToTop/>
         <Routes>
-          {/* <Route path="/" element={<MainLayout />}>
-            <Route index element={<MainHomeScreen />} /> 
-            <Route path="/about" element={<MainAboutUsScreen />} />
-            <Route path="/blog" element={ < MainBlogScreen /> } />
-            <Route path="/blog/:slug" element={<BlogDetail />} /> 
-            <Route path="/Donate" element={ < MainDonateScreen /> } />
-            <Route path="donate/:id" element={<DonationDetail />} />
-            <Route path="/donate/:id/payment" element={<DonationForm />} />
-            <Route path="/donate/:id/payment/confirm" element={<DonationFormDetail />} />
-          </Route>
-          <Route path="/admin" element={<DashboardLayout />}>
-              <Route path="dashboard" element={<DashboardHomePage />} />
-              <Route path="tree-types" element={<TreeTypePage />}/>
-              <Route path="news" element={<NewsPage />} />
-              <Route path="news/add" element={<NewsForm />} />
-              <Route path="news/edit/:id" element={<NewsForm />} />
-              <Route path="trees" element={<TreePage />} />
-              <Route path="areas" element={<AreaPage />} />
-              <Route path="donations" element={<DonationPage />} />
-              <Route path="donations/add" element={<DonationForms />} />
-              <Route path="donations/edit/:id" element={<DonationForms />} />
-              <Route index element={<Navigate to="dashboard" replace />} />
-              
-        </Route> */}
-          <Route path="/login" element={<MainLoginScreen />} />
-          <Route path="/register" element={<MainRegisterScreen />} />
+            <Route path="/" element={<Navigate to="/login" replace />} />
+            <Route path="/login" element={<MainLoginScreen />} />
+            
+            <Route path="/admin" element={<DashboardLayout />}>
+                <Route index element={<DashboardHome />} />
+                
+                <Route path="routers" element={<RouterListScreen />} />
+                <Route path="routers/add" element={<RouterFormScreen />} />
+                <Route path="routers/edit/:id" element={<RouterFormScreen />} />
+                <Route path="interfaces" element={<InterfaceListScreen />} />
+                <Route path="interfaces/add" element={<InterfaceFormScreen />} />
+                <Route path="interfaces/edit/:id" element={<InterfaceFormScreen />} />
+                <Route path="users" element={<div className="p-4">Halaman Data Pelanggan (Coming Soon)</div>} />
+            </Route>
+
         </Routes>
         </>
       );
 }
-
 
 export default Router;
