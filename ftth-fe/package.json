@@ -16,6 +16,7 @@
     "bumibaik": "file:",
     "clsx": "^2.1.1",
     "daffawebsite": "file:",
+    "date-fns": "^4.1.0",
     "framer-motion": "^12.23.12",
     "ftth-fe": "file:",
     "html2canvas": "^1.4.1",
@@ -34,6 +35,7 @@
     "react-lazy-load-image-component": "^1.6.3",
     "react-leaflet": "^5.0.0",
     "react-router-dom": "^7.9.3",
+    "recharts": "^3.4.1",
     "sweetalert2": "^11.26.3"
   },
   "devDependencies": {

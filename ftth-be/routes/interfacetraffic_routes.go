@@ -16,4 +16,5 @@ func InterfaceTrafficRoutes(app *fiber.App) {
 	api.Get("/traffic/:id", middleware.JWTProtected(), middleware.RoleAdmin(), controllers.GetInterfaceTraffic)
 	api.Put("/traffic/:id", middleware.JWTProtected(), middleware.RoleAdmin(), controllers.UpdateInterfaceTraffic)
 	api.Delete("/traffic/:id", middleware.JWTProtected(), middleware.RoleAdmin(), controllers.DeleteInterfaceTraffic)
+	api.Post("/traffic/sync-now", middleware.JWTProtected(), middleware.RoleAdmin(), controllers.ManualTrafficSync)
 }

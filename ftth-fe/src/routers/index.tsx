@@ -10,6 +10,7 @@ import RouterListScreen from '../screens/RouterScreen/RouterListScreen';
 import RouterFormScreen from '../screens/RouterScreen/RouterFormScreen';
 import InterfaceFormScreen from '../screens/InterfaceScreen/InterfaceFormScreen';
 import InterfaceListScreen from '../screens/InterfaceScreen/InterfaceListScreen';
+import TrafficDashboardScreen from '../screens/TrafficScreen/TrafficDashboardScreen';
 
 function Router(){
     return (
@@ -28,6 +29,7 @@ function Router(){
                 <Route path="interfaces" element={<InterfaceListScreen />} />
                 <Route path="interfaces/add" element={<InterfaceFormScreen />} />
                 <Route path="interfaces/edit/:id" element={<InterfaceFormScreen />} />
+                <Route path="traffic-monitoring" element={<TrafficDashboardScreen />} />
                 <Route path="users" element={<div className="p-4">Halaman Data Pelanggan (Coming Soon)</div>} />
             </Route>
 

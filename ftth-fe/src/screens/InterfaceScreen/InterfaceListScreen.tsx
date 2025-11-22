@@ -19,6 +19,7 @@ interface InterfaceData {
     Router?: {
         router_name: string;
         router_address: string;
+        router_type: string;
     };
 }
 
@@ -131,7 +132,7 @@ const InterfaceListScreen: React.FC = () => {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 font-medium text-slate-600">
-                                            {item.Router?.router_type || '-'}
+                                            {item.Router?.router_name || '-'}
                                         </td>
                                         <td className="px-6 py-4 font-mono text-slate-500">
                                             {item.Router?.router_address || '-'}

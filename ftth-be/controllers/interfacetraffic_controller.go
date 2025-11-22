@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	services "akane/be-ftth/Services"
 	"akane/be-ftth/config"
 	"akane/be-ftth/models"
 	"akane/be-ftth/utils"
@@ -133,4 +134,17 @@ func DeleteInterfaceTraffic(c *fiber.Ctx) error {
 	}
 
 	return utils.Success(c, "success soft delete traffic record", nil)
+}
+
+func ManualTrafficSync(c *fiber.Ctx) error {
+	// Kita jalankan di background (goroutine) agar request tidak timeout jika routernya banyak
+	// Tapi jika ingin user menunggu hasilnya, hilangkan 'go'
+
+	// Opsi A: Tunggu sampai selesai (User loading lama tapi pasti)
+	err := services.RunTrafficSyncJob()
+	if err != nil {
+		return utils.Error(c, "Gagal melakukan sinkronisasi: "+err.Error())
+	}
+
+	return utils.Success(c, "Sinkronisasi data traffic berhasil", nil)
 }
