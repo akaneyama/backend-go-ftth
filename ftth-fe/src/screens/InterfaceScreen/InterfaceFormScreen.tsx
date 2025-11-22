@@ -16,6 +16,7 @@ interface RouterData {
     router_id: string;
     router_name: string;
     router_address: string;
+    router_type: string;
 }
 
 interface MikrotikInterface {
@@ -186,7 +187,7 @@ const InterfaceFormScreen: React.FC = () => {
                                 <option value="">-- Pilih Router --</option>
                                 {routers.map((r) => (
                                     <option key={r.router_id} value={r.router_id}>
-                                        {r.router_name} ({r.router_address})
+                                        {r.router_type} ({r.router_address})
                                     </option>
                                 ))}
                             </select>

@@ -70,6 +70,8 @@ const InterfaceListScreen: React.FC = () => {
     const filteredData = interfaces.filter(item => 
         item.interface_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.Router?.router_name.toLowerCase().includes(searchTerm.toLowerCase())
+        ||
+        item.Router?.router_type.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     return (
@@ -129,7 +131,7 @@ const InterfaceListScreen: React.FC = () => {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 font-medium text-slate-600">
-                                            {item.Router?.router_name || '-'}
+                                            {item.Router?.router_type || '-'}
                                         </td>
                                         <td className="px-6 py-4 font-mono text-slate-500">
                                             {item.Router?.router_address || '-'}
