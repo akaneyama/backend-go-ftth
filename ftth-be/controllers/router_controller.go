@@ -104,18 +104,29 @@ func UpdateRouter(c *fiber.Ctx) error {
 func DeleteRouter(c *fiber.Ctx) error {
 	id := c.Params("id")
 	var router models.Router
+	var interfacemonitoring []models.InterfaceMonitoring
 	err := config.DB.Where("router_id = ? AND is_deleted = 0", id).First(&router).Error
+	monitoringerr := config.DB.Where("router_id = ? AND is_deleted = 0", id).Find(&interfacemonitoring).Error
 
 	if err != nil {
 		return utils.Failed(c, "Router tidak ditemukan atau ID tidak valid")
+	}
+	if monitoringerr != nil {
+		return utils.Failed(c, "Interface tidak ditemukan atau ID tidak valid")
 	}
 
 	if router.IsDeleted == 1 {
 		return utils.Failed(c, "Router sudah dihapus sebelumnya")
 	}
 	router.IsDeleted = 1
+	for i := range interfacemonitoring {
+		interfacemonitoring[i].IsDeleted = 1
+	}
 	if err := config.DB.Save(&router).Error; err != nil {
 		return utils.Error(c, "Gagal menghapus data router")
+	}
+	if err := config.DB.Save(&interfacemonitoring).Error; err != nil {
+		return utils.Error(c, "Gagal menghapus data interface")
 	}
 
 	return utils.Success(c, "Sukses menghapus router", nil)
