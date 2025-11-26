@@ -1,7 +1,7 @@
 package main
 
 import (
-	services "akane/be-ftth/Services"
+ "akane/be-ftth/Services"
 	"akane/be-ftth/config"
 	"akane/be-ftth/migrations"
 	"akane/be-ftth/routes"
