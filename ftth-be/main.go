@@ -1,7 +1,7 @@
 package main
 
 import (
- "akane/be-ftth/Services"
+	services "akane/be-ftth/Services"
 	"akane/be-ftth/config"
 	"akane/be-ftth/migrations"
 	"akane/be-ftth/routes"
@@ -50,6 +50,7 @@ func main() {
 	routes.RouterRoutes(app)
 	routes.InterfaceMonitoringRoutes(app)
 	routes.InterfaceTrafficRoutes(app)
+	routes.InternetPackageRoutes(app)
 
 	app.Listen(":8080")
 }

@@ -11,6 +11,10 @@ import RouterFormScreen from '../screens/RouterScreen/RouterFormScreen';
 import InterfaceFormScreen from '../screens/InterfaceScreen/InterfaceFormScreen';
 import InterfaceListScreen from '../screens/InterfaceScreen/InterfaceListScreen';
 import TrafficDashboardScreen from '../screens/TrafficScreen/TrafficDashboardScreen';
+import UserFormScreen from '../screens/UserScreen/UserFormScreen';
+import UserListScreen from '../screens/UserScreen/UserListScreen';
+import PackageFormScreen from '../screens/PackageScreen/PackageFormScreen';
+import PackageListScreen from '../screens/PackageScreen/PackageListScreen';
 
 function Router(){
     return (
@@ -22,7 +26,12 @@ function Router(){
             
             <Route path="/admin" element={<DashboardLayout />}>
                 <Route index element={<DashboardHome />} />
-                
+                <Route path="packages" element={<PackageListScreen />} />
+                <Route path="packages/add" element={<PackageFormScreen />} />
+                <Route path="packages/edit/:id" element={<PackageFormScreen />} />
+                <Route path="users" element={<UserListScreen />} />
+                <Route path="users/add" element={<UserFormScreen />} />
+                <Route path="users/edit/:id" element={<UserFormScreen />} />
                 <Route path="routers" element={<RouterListScreen />} />
                 <Route path="routers/add" element={<RouterFormScreen />} />
                 <Route path="routers/edit/:id" element={<RouterFormScreen />} />

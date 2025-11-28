@@ -11,7 +11,9 @@ import {
     CaretDown,
     MagnifyingGlass,
     Network,Graph,
-    PlugsConnected // Icon untuk Interface
+    PlugsConnected,
+    User,
+    Package,
 } from "@phosphor-icons/react";
 
 interface UserData {
@@ -23,6 +25,8 @@ interface UserData {
 // Menu Navigasi
 const navigationLinks = [
     { name: 'Dashboard', href: '/admin', icon: SquaresFour, end: true },
+    { name: 'Manajemen Pengguna', href: '/admin/users', icon: User, end: false },
+    { name: 'Manajemen Paket', href: '/admin/packages', icon: Package, end: false },
     { name: 'Manajemen Router', href: '/admin/routers', icon: RouterIcon, end: false },
     { name: 'Manajemen Interface', href: '/admin/interfaces', icon: Network, end: false },
     { name: 'Manajemen Traffic', href: '/admin/traffic-monitoring', icon: Graph, end: false },
