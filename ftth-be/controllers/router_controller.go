@@ -5,11 +5,13 @@ import (
 	"akane/be-ftth/config"
 	"akane/be-ftth/models"
 	"akane/be-ftth/utils"
+	"fmt"
 
 	"github.com/gofiber/fiber/v2"
 )
 
 func CreateRouter(c *fiber.Ctx) error {
+	adminPelaku := utils.GetUserFromContext(c)
 	var router models.Router
 	if err := c.BodyParser(&router); err != nil {
 		return utils.Failed(c, "Invalid request body")
@@ -30,6 +32,9 @@ func CreateRouter(c *fiber.Ctx) error {
 	if err := config.DB.Create(&router).Error; err != nil {
 		return utils.Error(c, "Failed to insert data!")
 	}
+
+	logDesc := fmt.Sprintf("Create Router baru: %s (Address: %s) (Tipe: %s)", router.RouterName, router.RouterAddress, router.RouterType)
+	utils.CreateLog(adminPelaku, "ROUTER", "TAMBAH ROUTER", logDesc)
 	return utils.Success(c, "Success insert data", nil)
 }
 
@@ -54,6 +59,7 @@ func GetRouter(c *fiber.Ctx) error {
 }
 
 func UpdateRouter(c *fiber.Ctx) error {
+	adminPelaku := utils.GetUserFromContext(c)
 	id := c.Params("id")
 
 	var router models.Router
@@ -97,11 +103,14 @@ func UpdateRouter(c *fiber.Ctx) error {
 	}
 
 	router.RouterPassword = ""
-
+	logDesc := fmt.Sprintf("Update Router %s %s %s %d %s ke %s %s %s %d %s",
+		router.RouterName, router.RouterAddress, router.RouterType, router.RouterPort, router.RouterStatus, payload.RouterName, payload.RouterAddress, payload.RouterType, payload.RouterPort, payload.RouterStatus)
+	utils.CreateLog(adminPelaku, "ROUTER", "UPDATE ROUTER", logDesc)
 	return utils.Success(c, "success update router data", router)
 }
 
 func DeleteRouter(c *fiber.Ctx) error {
+	adminPelaku := utils.GetUserFromContext(c)
 	id := c.Params("id")
 	var router models.Router
 	var interfacemonitoring []models.InterfaceMonitoring
@@ -128,7 +137,9 @@ func DeleteRouter(c *fiber.Ctx) error {
 	if err := config.DB.Save(&interfacemonitoring).Error; err != nil {
 		return utils.Error(c, "Gagal menghapus data interface")
 	}
-
+	logDesc := fmt.Sprintf("Delete Router %s %s %s %d %s",
+		router.RouterName, router.RouterAddress, router.RouterType, router.RouterPort, router.RouterStatus)
+	utils.CreateLog(adminPelaku, "ROUTER", "DELETE ROUTER", logDesc)
 	return utils.Success(c, "Sukses menghapus router", nil)
 }
 
