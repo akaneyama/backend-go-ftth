@@ -25,11 +25,11 @@ interface UserData {
 // Menu Navigasi
 const navigationLinks = [
     { name: 'Dashboard', href: '/admin', icon: SquaresFour, end: true },
-    { name: 'Manajemen Pengguna', href: '/admin/users', icon: User, end: false },
-    { name: 'Manajemen Paket', href: '/admin/packages', icon: Package, end: false },
-    { name: 'Manajemen Router', href: '/admin/routers', icon: RouterIcon, end: false },
-    { name: 'Manajemen Interface', href: '/admin/interfaces', icon: Network, end: false },
-    { name: 'Manajemen Traffic', href: '/admin/traffic-monitoring', icon: Graph, end: false },
+    { name: 'Pengguna', href: '/admin/users', icon: User, end: false },
+    { name: 'Paket', href: '/admin/packages', icon: Package, end: false },
+    { name: 'Router', href: '/admin/routers', icon: RouterIcon, end: false },
+    { name: 'Interface', href: '/admin/interfaces', icon: Network, end: false },
+    { name: 'Traffic', href: '/admin/traffic-monitoring', icon: Graph, end: false },
 ];
 
 
@@ -174,6 +174,7 @@ const SidebarContent: React.FC<{ onLogout: () => void; onClose?: () => void; use
                             ))}
                         </ul>
                     </li>
+                    
                     <li className="mt-auto">
                         <button onClick={onLogout} className="group -mx-2 flex w-full gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold text-slate-600 hover:bg-red-50 hover:text-red-600 transition-all"><SignOut className="h-6 w-6 shrink-0 text-slate-400 group-hover:text-red-500" aria-hidden="true" />Logout</button>
                     </li>
