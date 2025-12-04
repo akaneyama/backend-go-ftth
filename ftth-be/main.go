@@ -26,8 +26,6 @@ func main() {
 	migrations.RunMigrations()
 	c := cron.New()
 
-	// Format Cron: "0 * * * *" artinya menit ke-0 setiap jam (Setiap 1 Jam)
-	// Atau pakai preset "@hourly"
 	_, err2 := c.AddFunc("@hourly", func() {
 		log.Println("Running Hourly Traffic Sync...")
 		services.RunTrafficSyncJob()
@@ -37,7 +35,6 @@ func main() {
 	}
 
 	c.Start()
-	// Jangan lupa stop cron saat app mati (opsional di main sederhana)
 	defer c.Stop()
 	app := fiber.New()
 	app.Use(cors.New(cors.Config{
@@ -51,6 +48,7 @@ func main() {
 	routes.InterfaceMonitoringRoutes(app)
 	routes.InterfaceTrafficRoutes(app)
 	routes.InternetPackageRoutes(app)
+	routes.ConfigurationRoutes(app)
 
 	app.Listen(":8080")
 }
