@@ -15,5 +15,6 @@ func InterfaceMonitoringRoutes(app *fiber.App) {
 	api.Get("/interfaces/:id", middleware.JWTProtected(), middleware.RoleAdmin(), controllers.GetInterfaceMonitoring)
 	api.Put("/interfaces/:id", middleware.JWTProtected(), middleware.RoleAdmin(), controllers.UpdateInterfaceMonitoring)
 	api.Delete("/interfaces/:id", middleware.JWTProtected(), middleware.RoleAdmin(), controllers.DeleteInterfaceMonitoring)
-	api.Get("/routers/:id/interfaces-scan", middleware.JWTProtected(), middleware.RoleAdmin(), controllers.GetInterfacesFromRouter)
+	api.Get("/interfaces/:id/interfaces-scan", middleware.JWTProtected(), middleware.RoleAdmin(), controllers.GetInterfacesFromRouter)
+	api.Patch("/interfaces/:id/toggle-exclude", middleware.JWTProtected(), middleware.RoleAdmin(), controllers.ToggleExcludeInterface)
 }

@@ -35,7 +35,7 @@
     "react-lazy-load-image-component": "^1.6.3",
     "react-leaflet": "^5.0.0",
     "react-router-dom": "^7.9.3",
-    "recharts": "^3.4.1",
+    "recharts": "^3.7.0",
     "sweetalert2": "^11.26.3"
   },
   "devDependencies": {

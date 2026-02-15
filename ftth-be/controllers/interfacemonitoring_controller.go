@@ -178,3 +178,41 @@ func GetInterfacesFromRouter(c *fiber.Ctx) error {
 
 	return utils.Success(c, "Berhasil mengambil daftar interface", interfaces)
 }
+
+func ToggleExcludeInterface(c *fiber.Ctx) error {
+	// Ambil Admin Pelaku (Optional: untuk log)
+	adminPelaku := utils.GetUserFromContext(c)
+
+	id := c.Params("id")
+	var iface models.InterfaceMonitoring
+
+	// Cari data berdasarkan ID
+	if err := config.DB.First(&iface, id).Error; err != nil {
+		return utils.Failed(c, "Interface monitoring not found")
+	}
+
+	// Toggle logic (0 -> 1, 1 -> 0)
+	oldStatus := iface.IsExcluded
+	if iface.IsExcluded == 0 {
+		iface.IsExcluded = 1
+	} else {
+		iface.IsExcluded = 0
+	}
+
+	if err := config.DB.Save(&iface).Error; err != nil {
+		return utils.Error(c, "Failed to update status")
+	}
+
+	// (Opsional) Buat Log agar tahu siapa yang mematikan monitoring
+	statusText := "Monitoring ON"
+	if iface.IsExcluded == 1 {
+		statusText = "Monitoring EXCLUDED/OFF"
+	}
+	utils.CreateLog(adminPelaku, "MONITORING", "UPDATE", "Ubah status interface "+iface.InterfaceName+" menjadi "+statusText)
+
+	return utils.Success(c, "Status exclude berhasil diupdate", map[string]interface{}{
+		"interface_id": iface.InterfaceID,
+		"is_excluded":  iface.IsExcluded,
+		"prev_status":  oldStatus,
+	})
+}

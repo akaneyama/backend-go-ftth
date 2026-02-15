@@ -1,11 +1,10 @@
 package main
 
 import (
-	services "akane/be-ftth/Services"
+	services "akane/be-ftth/Services" // Pastikan import path sesuai
 	"akane/be-ftth/config"
 	"akane/be-ftth/migrations"
 	"akane/be-ftth/routes"
-
 	"log"
 
 	"github.com/gofiber/fiber/v2"
@@ -15,34 +14,48 @@ import (
 )
 
 func main() {
-
 	err := godotenv.Load()
 	if err != nil {
 		log.Println("No .env file found")
 	}
 
 	config.ConnectDB()
-	// config.DB.AutoMigrate(&models.User{})
 	migrations.RunMigrations()
+
+	// --- SETUP CRON JOBS ---
 	c := cron.New()
 
-	_, err2 := c.AddFunc("@hourly", func() {
-		log.Println("Running Hourly Traffic Sync...")
+	// JOB 1: Traffic Sync (Setiap Jam atau bisa diganti @every 5m)
+	_, errT := c.AddFunc("@hourly", func() {
+		log.Println("[CRON] Running Traffic Sync...")
 		services.RunTrafficSyncJob()
 	})
-	if err2 != nil {
-		log.Fatal("Gagal menjalankan cron:", err2)
+	if errT != nil {
+		log.Fatal(errT)
+	}
+
+	// JOB 2: Ping Check (Setiap 30 Menit)
+	// Format: "@every 30m"
+	_, errP := c.AddFunc("@every 30m", func() {
+		log.Println("[CRON] Running Ping Check...")
+		services.RunPingCheckJob()
+	})
+	if errP != nil {
+		log.Fatal(errP)
 	}
 
 	c.Start()
 	defer c.Stop()
+	// -----------------------
+
 	app := fiber.New()
 	app.Use(cors.New(cors.Config{
-		AllowOrigins:     "http://localhost:3000, http://127.0.0.1:5173,http://localhost:5173",
+		AllowOrigins:     "http://localhost:3000, http://127.0.0.1:5173, http://localhost:5173",
 		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
 		AllowMethods:     "GET,POST,PUT,DELETE,OPTIONS",
 		AllowCredentials: true,
 	}))
+
 	routes.UserRoutes(app)
 	routes.RouterRoutes(app)
 	routes.InterfaceMonitoringRoutes(app)
@@ -50,5 +63,5 @@ func main() {
 	routes.InternetPackageRoutes(app)
 	routes.ConfigurationRoutes(app)
 
-	app.Listen(":8080")
+	log.Fatal(app.Listen(":8080"))
 }

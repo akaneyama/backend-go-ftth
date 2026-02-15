@@ -155,8 +155,8 @@ const SidebarContent: React.FC<{ onLogout: () => void; onClose?: () => void; use
         <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-slate-200 bg-white px-6 pb-4">
             <div className="flex h-16 shrink-0 items-center justify-center border-b border-slate-100 mb-2">
                 <div className="flex items-center gap-2">
-                    <div className="h-8 w-8 rounded bg-sky-600 flex items-center justify-center text-white font-bold shadow-sm"><RouterIcon size={20} weight="bold"/></div>
-                    <span className="text-xl font-bold text-slate-800 tracking-tight">NetManager</span>
+                    {/* <div className="h-8 w-8 rounded bg-sky-600 flex items-center justify-center text-white font-bold shadow-sm"><RouterIcon size={20} weight="bold"/></div> */}
+                    <span className="text-xl font-bold text-slate-800 tracking-tight">Monitoring Traffic</span>
                 </div>
             </div>
             <nav className="flex flex-1 flex-col">

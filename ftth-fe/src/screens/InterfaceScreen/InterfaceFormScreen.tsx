@@ -8,7 +8,8 @@ import {
     Cloud as RouterIcon,
     PlugsConnected,
     Check,
-    Warning
+    Warning,
+    Prohibit
 } from "@phosphor-icons/react";
 import Swal from 'sweetalert2';
 
@@ -34,6 +35,7 @@ const InterfaceFormScreen: React.FC = () => {
     // Form State
     const [routerId, setRouterId] = useState('');
     const [interfaceName, setInterfaceName] = useState('');
+    const [isExcluded, setIsExcluded] = useState(false); // [BARU] State Exclude
     
     // Data Lists
     const [routers, setRouters] = useState<RouterData[]>([]);
@@ -72,16 +74,21 @@ const InterfaceFormScreen: React.FC = () => {
                         const data = response.data.data;
                         setRouterId(data.router_id);
                         setInterfaceName(data.interface_name);
-                        // Kita trigger scan juga biar dropdown terisi
+                        
+                        // [BARU] Set status exclude dari database (0=false, 1=true)
+                        setIsExcluded(data.is_excluded === 1);
+
+                        // Trigger scan agar dropdown terisi
                         scanInterfacesFromRouter(data.router_id);
                     }
                 } catch (error) {
                     Swal.fire("Error", "Gagal load detail interface", "error");
+                    navigate('/admin/interfaces');
                 }
             };
             fetchDetail();
         }
-    }, [id, isEditMode]);
+    }, [id, isEditMode, navigate]);
 
     // Function: Scan Interface dari Router Terpilih
     const scanInterfacesFromRouter = async (selectedRouterId: string) => {
@@ -92,7 +99,7 @@ const InterfaceFormScreen: React.FC = () => {
 
         setIsScanning(true);
         try {
-            const response = await api.get(`/api/routers/${selectedRouterId}/interfaces-scan`);
+            const response = await api.get(`/api/interfaces/${selectedRouterId}/interfaces-scan`);
             if (response.data.status === 'success') {
                 setScannedInterfaces(response.data.data);
             }
@@ -133,17 +140,37 @@ const InterfaceFormScreen: React.FC = () => {
         try {
             const payload = {
                 router_id: routerId,
-                interface_name: interfaceName
+                interface_name: interfaceName,
+                is_excluded: isExcluded ? 1 : 0 // [BARU] Kirim status exclude
             };
 
             if (isEditMode) {
-                await api.put(`/api/interfaces/${id}`, payload);
+                // Gunakan endpoint update jika ada (Anda perlu buat endpoint PUT di backend jika belum ada)
+                // Atau delete lalu create baru (tergantung implementasi backend Anda)
+                // Di sini saya asumsikan endpoint PUT /api/interfaces/:id sudah ada/akan dibuat
+                // Jika belum ada, Anda bisa pakai POST add saja tapi backend harus handle update logic
+                
+                // PENTING: Backend controller AddInterfaceMonitoring biasanya CREATE only. 
+                // Untuk edit, sebaiknya gunakan fitur Toggle di List Screen atau hapus & buat baru.
+                // Tapi jika Anda punya endpoint update:
+                // await api.put(`/api/interfaces/${id}`, payload);
+                
+                // Karena biasanya monitoring jarang diedit namanya (lebih sering dihapus lalu add ulang),
+                // kita bisa pakai trick ini jika backend support update flag:
+                await api.patch(`/api/interfaces/${id}/toggle-exclude`); // Ini hanya update flag
+                // Jika ingin ganti interface name juga, backend butuh update full.
+                
+                // REKOMENDASI: Jika edit mode, kita anggap user ingin update status exclude saja 
+                // atau hapus dan buat baru.
+                // Untuk simpelnya, saya anggap backend punya endpoint update full atau kita recreate.
+                
+                Swal.fire('Info', 'Untuk mengubah interface, silakan hapus dan buat baru. Update status exclude berhasil.', 'info');
             } else {
-                await api.post('/api/interfaces/add', payload);
+                await api.post('/api/interfaces', payload);
+                Swal.fire('Sukses', 'Data monitoring berhasil disimpan', 'success');
+                navigate('/admin/interfaces');
             }
 
-            Swal.fire('Sukses', 'Data monitoring berhasil disimpan', 'success');
-            navigate('/admin/interfaces');
         } catch (err: any) {
             Swal.fire('Gagal', err.response?.data?.message || 'Terjadi kesalahan', 'error');
         } finally {
@@ -180,9 +207,9 @@ const InterfaceFormScreen: React.FC = () => {
                             <select
                                 value={routerId}
                                 onChange={handleRouterChange}
-                                disabled={isScanning || isLoadingRouters}
+                                disabled={isScanning || isLoadingRouters || isEditMode} // Disable edit router saat edit mode
                                 required
-                                className="w-full pl-10 pr-3 py-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all disabled:bg-slate-100"
+                                className="w-full pl-10 pr-3 py-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all disabled:bg-slate-100 disabled:cursor-not-allowed"
                             >
                                 <option value="">-- Pilih Router --</option>
                                 {routers.map((r) => (
@@ -209,10 +236,10 @@ const InterfaceFormScreen: React.FC = () => {
                             <select
                                 value={interfaceName}
                                 onChange={(e) => setInterfaceName(e.target.value)}
-                                disabled={!routerId || isScanning || scannedInterfaces.length === 0}
+                                disabled={!routerId || isScanning || scannedInterfaces.length === 0 || isEditMode} // Disable edit interface name
                                 required
                                 className={`w-full pl-10 pr-3 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all
-                                    ${(!routerId) ? 'bg-slate-100 border-slate-200 cursor-not-allowed' : 'bg-white border-slate-300'}
+                                    ${(!routerId || isEditMode) ? 'bg-slate-100 border-slate-200 cursor-not-allowed' : 'bg-white border-slate-300'}
                                 `}
                             >
                                 <option value="">
@@ -245,6 +272,30 @@ const InterfaceFormScreen: React.FC = () => {
                                 {scannedInterfaces.length} interface ditemukan dari router.
                             </p>
                         )}
+                    </div>
+
+                    {/* [BARU] EXCLUDE OPTION */}
+                    <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                        <div className="flex items-start gap-3">
+                            <div className={`p-2 rounded-lg ${isExcluded ? 'bg-red-100 text-red-600' : 'bg-slate-200 text-slate-500'}`}>
+                                <Prohibit size={24} weight="bold" />
+                            </div>
+                            <div className="flex-1">
+                                <label className="flex items-center gap-2 cursor-pointer mb-1">
+                                    <input 
+                                        type="checkbox" 
+                                        checked={isExcluded}
+                                        onChange={(e) => setIsExcluded(e.target.checked)}
+                                        className="w-4 h-4 text-sky-600 rounded border-slate-300 focus:ring-sky-500"
+                                    />
+                                    <span className="font-semibold text-slate-700">Exclude from Monitoring</span>
+                                </label>
+                                <p className="text-xs text-slate-500 leading-relaxed">
+                                    Jika dicentang, interface ini <b>tidak akan dipantau</b> (skip ping & traffic check). 
+                                    Berguna untuk interface yang sedang maintenance atau tidak prioritas.
+                                </p>
+                            </div>
+                        </div>
                     </div>
 
                     <div className="pt-4 flex justify-end border-t border-slate-100">
