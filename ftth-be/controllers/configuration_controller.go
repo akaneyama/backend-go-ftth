@@ -102,3 +102,26 @@ func ConfigureRouterProfile(c *fiber.Ctx) error {
 
 	return utils.Success(c, "Konfigurasi profile berhasil diterapkan", nil)
 }
+
+func DeleteNetworkNode(c *fiber.Ctx) error {
+	nodeID := c.Params("id")
+
+	// 1. Cek apakah Node ada
+	var node models.NetworkNode
+	if err := config.DB.First(&node, nodeID).Error; err != nil {
+		return utils.Failed(c, "Node tidak ditemukan")
+	}
+
+	// 2. Hapus Kabel Terkait (Cleanup Topology)
+	// Hapus semua kabel di mana node ini adalah SUMBER atau TUJUAN
+	if err := config.DB.Where("source_node_id = ? OR target_node_id = ?", nodeID, nodeID).Delete(&models.NetworkCable{}).Error; err != nil {
+		return utils.Failed(c, "Gagal menghapus kabel terkait: "+err.Error())
+	}
+
+	// 3. Hapus Node itu sendiri
+	if err := config.DB.Delete(&node).Error; err != nil {
+		return utils.Failed(c, "Gagal menghapus node: "+err.Error())
+	}
+
+	return utils.Success(c, "Node dan kabel terkait berhasil dihapus", nil)
+}

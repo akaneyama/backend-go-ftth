@@ -15,7 +15,7 @@ import UserFormScreen from '../screens/UserScreen/UserFormScreen';
 import UserListScreen from '../screens/UserScreen/UserListScreen';
 import PackageFormScreen from '../screens/PackageScreen/PackageFormScreen';
 import PackageListScreen from '../screens/PackageScreen/PackageListScreen';
-
+import NetworkMap from '../screens/MapScreen/NetworkMap';
 function Router(){
     return (
       <>
@@ -39,6 +39,7 @@ function Router(){
                 <Route path="interfaces/add" element={<InterfaceFormScreen />} />
                 <Route path="interfaces/edit/:id" element={<InterfaceFormScreen />} />
                 <Route path="traffic-monitoring" element={<TrafficDashboardScreen />} />
+                <Route path="network-map" element={<NetworkMap />} />
                 <Route path="users" element={<div className="p-4">Halaman Data Pelanggan (Coming Soon)</div>} />
             </Route>
 

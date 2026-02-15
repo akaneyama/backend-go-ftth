@@ -14,6 +14,7 @@ import {
     PlugsConnected,
     User,
     Package,
+    LineSegmentIcon,
 } from "@phosphor-icons/react";
 
 interface UserData {
@@ -29,6 +30,8 @@ const navigationLinks = [
     { name: 'Router', href: '/admin/routers', icon: RouterIcon, end: false },
     { name: 'Interface', href: '/admin/interfaces', icon: Network, end: false },
     { name: 'Traffic', href: '/admin/traffic-monitoring', icon: Graph, end: false },
+    { name: 'Topologi', href: '/admin/network-map', icon: LineSegmentIcon, end: false },
+
 ];
 
 

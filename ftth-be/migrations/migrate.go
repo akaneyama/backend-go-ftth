@@ -18,6 +18,8 @@ func RunMigrations() {
 		&models.InterfaceTraffic{},
 		&models.Internetpackage{},
 		&models.Log{},
+		&models.NetworkCable{},
+		&models.NetworkNode{},
 	)
 	if err != nil {
 		fmt.Println("Migration failed:", err)

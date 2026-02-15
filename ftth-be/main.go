@@ -62,6 +62,7 @@ func main() {
 	routes.InterfaceTrafficRoutes(app)
 	routes.InternetPackageRoutes(app)
 	routes.ConfigurationRoutes(app)
+	routes.TopologyRoutes(app)
 
 	log.Fatal(app.Listen(":8080"))
 }
