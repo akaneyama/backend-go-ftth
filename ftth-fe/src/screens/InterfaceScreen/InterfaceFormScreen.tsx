@@ -166,7 +166,7 @@ const InterfaceFormScreen: React.FC = () => {
                 
                 Swal.fire('Info', 'Untuk mengubah interface, silakan hapus dan buat baru. Update status exclude berhasil.', 'info');
             } else {
-                await api.post('/api/interfaces', payload);
+                await api.post('/api/interfaces/add', payload);
                 Swal.fire('Sukses', 'Data monitoring berhasil disimpan', 'success');
                 navigate('/admin/interfaces');
             }
