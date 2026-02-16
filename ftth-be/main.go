@@ -50,7 +50,7 @@ func main() {
 
 	app := fiber.New()
 	app.Use(cors.New(cors.Config{
-		  AllowOrigins: "http://localhost, http://192.168.5.205",
+		  AllowOrigins: "https://trafficmon.daffaaditya.my.id",
 		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
 		AllowMethods:     "GET,POST,PUT,DELETE,OPTIONS,PATCH",
 		AllowCredentials: true,
