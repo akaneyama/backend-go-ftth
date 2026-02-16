@@ -20,6 +20,10 @@ func RunMigrations() {
 		&models.Log{},
 		&models.NetworkCable{},
 		&models.NetworkNode{},
+		&models.OLT{},
+		&models.ODC{},
+		&models.ODP{},
+		&models.ClientNode{},
 	)
 	if err != nil {
 		fmt.Println("Migration failed:", err)
