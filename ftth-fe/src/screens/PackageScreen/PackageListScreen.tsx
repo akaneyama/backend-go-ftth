@@ -7,7 +7,6 @@ import {
     Trash, 
     MagnifyingGlass, 
     Package as PackageIcon,
-    Coin as CurrencyIdr,
     ArrowUp,
     ArrowDown,
     WifiHigh

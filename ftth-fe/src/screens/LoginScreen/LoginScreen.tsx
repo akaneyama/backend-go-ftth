@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AxiosError } from 'axios';
 import api from '../../api/AxiosInstance';
 import { EyesIcon as Eye, EyeClosedIcon as EyeOff, MailboxIcon as Mail, Lock, CircleNotch } from '@phosphor-icons/react'; // Saya sarankan pakai phosphor-icons agar seragam dengan dashboard
 

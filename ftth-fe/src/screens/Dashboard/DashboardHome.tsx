@@ -65,9 +65,11 @@ const DashboardHome: React.FC = () => {
     };
 
     // --- CUSTOM TOOLTIP FORMATTER ---
-    const tooltipFormatter = (value: number): [string, string] => {
-        return [formatSpeed(value), '']; 
-    };
+const tooltipFormatter = (value: any): [string, string] => {
+    // Pastikan value adalah number sebelum di-format
+    const numValue = Number(value);
+    return [formatSpeed(isNaN(numValue) ? 0 : numValue), '']; 
+};
 
     // --- 1. FETCH INITIAL DATA ---
     useEffect(() => {
@@ -228,7 +230,7 @@ const DashboardHome: React.FC = () => {
                                     <Tooltip 
                                         contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                                         labelStyle={{ color: '#64748b', marginBottom: '0.5rem', fontSize: '0.75rem' }}
-                                        formatter={(value: number) => tooltipFormatter(value)}
+                                        formatter={(value: any) => tooltipFormatter(value)}
                                     />
                                     <Area 
                                         type="monotone" 

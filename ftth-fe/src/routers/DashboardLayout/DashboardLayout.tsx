@@ -11,7 +11,6 @@ import {
     CaretDown,
     MagnifyingGlass,
     Network,Graph,
-    PlugsConnected,
     User,
     Package,
     LineSegmentIcon,

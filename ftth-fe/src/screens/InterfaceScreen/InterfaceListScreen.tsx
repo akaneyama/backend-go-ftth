@@ -7,8 +7,6 @@ import {
     Trash, 
     MagnifyingGlass, 
     ArrowsLeftRight,
-    Plugs,
-    WifiHigh
 } from "@phosphor-icons/react";
 import Swal from 'sweetalert2';
 
