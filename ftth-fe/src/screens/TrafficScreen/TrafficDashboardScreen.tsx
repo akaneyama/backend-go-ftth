@@ -121,7 +121,6 @@ const TrafficDashboardScreen: React.FC = () => {
     };
 
     // --- HELPER: GET UNIQUE ROUTERS ---
-    // Mengambil daftar nama router unik dari data yang ada untuk dropdown filter
     const uniqueRouters = useMemo(() => {
         const routers = new Set<string>();
         monitoredData.forEach(item => {
@@ -133,7 +132,6 @@ const TrafficDashboardScreen: React.FC = () => {
     }, [monitoredData]);
 
     // --- FILTER LOGIC (MEMOIZED) ---
-    // Filter Utama: Search -> Router -> Tanggal
     const filteredDisplayData = useMemo(() => {
         return monitoredData
             // 1. Filter Interface berdasarkan Search & Router
@@ -164,126 +162,115 @@ const TrafficDashboardScreen: React.FC = () => {
         return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
     }, []);
 
-    // --- RENDER ---
     return (
-        <div className="min-h-screen flex flex-col space-y-6 pb-24"> 
-            
-            {/* --- STICKY HEADER --- */}
-            <div className="sticky top-0 z-30 bg-slate-50/95 backdrop-blur-md border-b border-slate-200 shadow-sm -mx-4 px-4 sm:-mx-8 sm:px-8 py-4 transition-all">
-                <div className="flex flex-col gap-4">
-                    
-                    {/* Baris Atas: Judul & Last Update */}
-                    <div className="flex flex-col md:flex-row justify-between md:items-center gap-2">
-                        <div>
-                            <h1 className="text-xl md:text-2xl font-bold text-slate-800 flex items-center gap-2">
-                                <ChartBar className="text-sky-600" weight="duotone"/>
-                                Traffic Monitoring
-                            </h1>
-                            <p className="text-slate-500 text-xs md:text-sm mt-1">
-                                Grafik bandwidth real-time & historis.
-                            </p>
-                        </div>
-                        <div className="flex items-center gap-2 self-end md:self-auto">
-                             <p className="text-[10px] text-slate-400">
-                                Update: <span className="font-mono font-bold text-slate-600">{lastUpdated.toLocaleTimeString('id-ID')}</span>
-                             </p>
-                             <button onClick={() => fetchData()} disabled={isLoading || isSyncing} className="p-1.5 bg-white border border-slate-300 rounded-md text-slate-400 hover:text-sky-600 transition-all disabled:animate-spin shadow-sm">
-                                <ArrowsClockwise size={16} weight="bold" />
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Baris Bawah: Filters & Actions */}
-                    <div className="flex flex-col lg:flex-row gap-3">
-                        
-                        {/* GROUP FILTER (Search & Select) */}
-                        <div className="flex flex-1 flex-col sm:flex-row gap-3">
-                            {/* Search Input */}
-                            <div className="relative flex-1">
-                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <MagnifyingGlass className="text-slate-400" size={18} />
-                                </div>
-                                <input 
-                                    type="text"
-                                    placeholder="Cari Interface..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="w-full pl-10 pr-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/50 shadow-sm"
-                                />
-                                {searchTerm && (
-                                    <button onClick={() => setSearchTerm('')} className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-red-500">
-                                        <XCircle size={16} weight="fill" />
-                                    </button>
-                                )}
-                            </div>
-
-                            {/* Router Filter */}
-                            <div className="relative min-w-[180px]">
-                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <RouterIcon className="text-slate-400" size={18} />
-                                </div>
-                                <select 
-                                    value={selectedRouter}
-                                    onChange={(e) => setSelectedRouter(e.target.value)}
-                                    className="w-full pl-10 pr-8 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/50 shadow-sm appearance-none cursor-pointer"
-                                >
-                                    <option value="all">Semua Router</option>
-                                    {uniqueRouters.map(router => (
-                                        <option key={router} value={router}>{router}</option>
-                                    ))}
-                                </select>
-                                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
-                                    <Funnel size={14} weight="fill" />
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* GROUP DATE & ACTION */}
-                        <div className="flex flex-col sm:flex-row gap-3 lg:border-l lg:border-slate-200 lg:pl-3">
-                            {/* Date Picker */}
-                            <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-slate-300 focus-within:ring-2 focus-within:ring-sky-500/50 shadow-sm min-w-[160px]">
-                                <CalendarDots className="text-slate-400" size={20} />
-                                <div className="flex flex-col w-full">
-                                    <span className="text-[9px] text-slate-400 font-bold uppercase leading-none">Tanggal</span>
-                                    <input 
-                                        type="date" 
-                                        value={filterDate}
-                                        onChange={(e) => setFilterDate(e.target.value)}
-                                        className="text-xs font-bold text-slate-700 bg-transparent outline-none p-0 border-none w-full cursor-pointer"
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Sync Button */}
-                            <button 
-                                onClick={handleManualSync}
-                                disabled={isSyncing || isLoading}
-                                className={`flex items-center justify-center gap-2 bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all shadow-sm whitespace-nowrap
-                                ${(isSyncing || isLoading) ? 'opacity-70 cursor-not-allowed' : 'hover:shadow-md active:scale-95'}`}
-                            >
-                                <CloudArrowDown size={18} className={isSyncing ? "animate-bounce" : ""} weight="bold"/>
-                                <span>{isSyncing ? 'Syncing...' : 'Sync Data'}</span>
-                            </button>
-                        </div>
-                    </div>
+        <div className="space-y-6 pb-16">
+            {/* Header Banner */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 to-indigo-950 p-6 rounded-3xl text-white shadow-xl">
+                <div>
+                    <h2 className="text-2xl font-black tracking-tight flex items-center gap-2">
+                        <ChartBar size={28} weight="fill" className="text-sky-400 animate-pulse" />
+                        Traffic Monitoring
+                    </h2>
+                    <p className="text-xs text-slate-300 mt-1">Grafik bandwidth real-time & historis router Mikrotik. Pantau lalu lintas data unggah dan unduh pelanggan secara presisi.</p>
+                </div>
+                <div className="flex items-center gap-3">
+                    <p className="text-[10px] text-slate-400 font-bold bg-slate-800/40 border border-slate-700/50 px-3 py-1.5 rounded-xl uppercase tracking-wider">
+                        Update: <span className="font-mono text-white">{lastUpdated.toLocaleTimeString('id-ID')}</span>
+                    </p>
+                    <button 
+                        onClick={() => fetchData()} 
+                        disabled={isLoading || isSyncing} 
+                        className="p-2.5 bg-slate-800 border border-slate-700 hover:border-sky-500 text-slate-300 hover:text-sky-400 rounded-xl transition-all disabled:animate-spin active:scale-95 shadow-sm"
+                        title="Perbarui data grafik"
+                    >
+                        <ArrowsClockwise size={16} weight="bold" />
+                    </button>
                 </div>
             </div>
 
-            {/* --- CONTENT SECTION --- */}
-            <div className="px-1">
-                
-                {/* 1. LOADING STATE */}
+            {/* Premium Filter Drawer Box */}
+            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-5 space-y-4">
+                <div className="flex flex-col lg:flex-row gap-4 items-center">
+                    {/* Search Input */}
+                    <div className="relative flex-1 w-full">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <MagnifyingGlass className="text-slate-400" size={16} />
+                        </div>
+                        <input 
+                            type="text"
+                            placeholder="Cari berdasarkan nama interface..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-11 pr-10 py-2.5 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all text-xs font-semibold text-slate-700 placeholder:text-slate-450"
+                        />
+                        {searchTerm && (
+                            <button onClick={() => setSearchTerm('')} className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-red-500 transition">
+                                <XCircle size={16} weight="fill" />
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Router Select Filter */}
+                    <div className="relative min-w-[200px] w-full lg:w-auto">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <RouterIcon className="text-slate-400" size={16} />
+                        </div>
+                        <select 
+                            value={selectedRouter}
+                            onChange={(e) => setSelectedRouter(e.target.value)}
+                            className="w-full pl-11 pr-10 py-2.5 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all text-xs font-bold text-slate-650 appearance-none cursor-pointer"
+                        >
+                            <option value="all">Semua Router</option>
+                            {uniqueRouters.map(router => (
+                                <option key={router} value={router}>{router}</option>
+                            ))}
+                        </select>
+                        <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-slate-400">
+                            <Funnel size={12} weight="fill" />
+                        </div>
+                    </div>
+
+                    {/* Date Selector */}
+                    <div className="flex items-center gap-2.5 bg-slate-50 px-4 py-1.5 rounded-2xl border border-slate-100 focus-within:ring-2 focus-within:ring-sky-500/20 w-full lg:w-auto min-w-[180px]">
+                        <CalendarDots className="text-slate-400" size={18} />
+                        <div className="flex flex-col w-full">
+                            <span className="text-[8px] text-slate-400 font-black uppercase tracking-wider leading-none">Tanggal Monitoring</span>
+                            <input 
+                                type="date" 
+                                value={filterDate}
+                                onChange={(e) => setFilterDate(e.target.value)}
+                                className="text-xs font-bold text-slate-700 bg-transparent outline-none p-0 border-none w-full cursor-pointer mt-0.5"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Sync Button */}
+                    <button 
+                        onClick={handleManualSync}
+                        disabled={isSyncing || isLoading}
+                        className={`flex items-center justify-center gap-1.5 bg-sky-500 hover:bg-sky-600 text-white px-5 py-2.5 rounded-2xl text-xs font-bold transition-all w-full lg:w-auto shadow-md shadow-sky-500/10 active:scale-95
+                        ${(isSyncing || isLoading) ? 'opacity-70 cursor-not-allowed' : 'hover:shadow-lg'}`}
+                    >
+                        <CloudArrowDown size={16} className={isSyncing ? "animate-bounce" : ""} weight="bold"/>
+                        <span>{isSyncing ? 'Menghubungkan...' : 'Sinkronisasi Router'}</span>
+                    </button>
+                </div>
+            </div>
+
+            {/* Content Chart Lists */}
+            <div>
+                {/* loading shimmer */}
                 {isLoading && monitoredData.length === 0 && (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {[1, 2, 3, 4].map((i) => (
-                            <div key={i} className="bg-white h-[350px] rounded-xl border border-slate-200 p-6 animate-pulse">
-                                <div className="flex justify-between mb-8">
-                                    <div className="h-6 bg-slate-100 rounded w-1/3"></div>
-                                    <div className="h-4 bg-slate-100 rounded w-1/4"></div>
+                            <div key={i} className="bg-white h-[350px] rounded-3xl border border-slate-100 p-6 animate-pulse space-y-8">
+                                <div className="flex justify-between">
+                                    <div className="h-6 bg-slate-100 rounded-xl w-1/3"></div>
+                                    <div className="h-4 bg-slate-50 rounded-xl w-1/4"></div>
                                 </div>
-                                <div className="h-[200px] bg-slate-50 rounded-lg flex items-end justify-between px-4 pb-2 gap-2">
+                                <div className="h-[200px] bg-slate-50 rounded-2xl flex items-end justify-between px-4 pb-2 gap-2">
                                     {[...Array(10)].map((_, j) => (
-                                        <div key={j} className="bg-slate-200 w-full rounded-t" style={{ height: `${Math.random() * 80 + 20}%` }}></div>
+                                        <div key={j} className="bg-slate-200 w-full rounded-t-lg" style={{ height: `${Math.random() * 80 + 20}%` }}></div>
                                     ))}
                                 </div>
                             </div>
@@ -291,53 +278,57 @@ const TrafficDashboardScreen: React.FC = () => {
                     </div>
                 )}
 
-                {/* 2. EMPTY STATE (Data Kosong / Tidak Ditemukan) */}
+                {/* empty data */}
                 {!isLoading && filteredDisplayData.length === 0 && (
-                    <div className="flex flex-col items-center justify-center py-20 bg-white rounded-xl border border-dashed border-slate-300 mx-auto max-w-2xl mt-10">
-                        <div className="p-4 bg-slate-50 rounded-full mb-4">
-                            <Faders className="text-slate-300" size={48} weight="duotone"/>
+                    <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-dashed border-slate-200 mx-auto max-w-2xl mt-6">
+                        <div className="p-4 bg-slate-50 rounded-3xl mb-4 text-slate-400">
+                            <Faders size={40} weight="fill"/>
                         </div>
-                        <h3 className="text-lg font-bold text-slate-700">Tidak ada data ditemukan</h3>
-                        <p className="text-slate-500 text-sm mt-1 max-w-md text-center">
+                        <h3 className="text-sm font-black text-slate-800 uppercase tracking-wide">Data Monitoring Kosong</h3>
+                        <p className="text-slate-500 text-xs mt-1 max-w-sm text-center font-medium leading-relaxed">
                             {monitoredData.length === 0 
-                                ? "Belum ada interface yang dimonitor. Silakan tambahkan di menu Manajemen Interface." 
-                                : "Tidak ada interface yang cocok dengan filter pencarian atau router yang dipilih."}
+                                ? "Belum ada interface yang terdaftar untuk dimonitor. Tambahkan interface di menu Manajemen Interface." 
+                                : "Tidak ada interface yang cocok dengan nama pencarian atau filter router yang dipilih."}
                         </p>
                         {(searchTerm || selectedRouter !== 'all') && (
-                            <button onClick={() => { setSearchTerm(''); setSelectedRouter('all'); }} className="mt-4 text-sm text-sky-600 font-semibold hover:underline">
-                                Reset Filter
+                            <button 
+                                onClick={() => { setSearchTerm(''); setSelectedRouter('all'); }} 
+                                className="mt-4 text-xs text-sky-500 font-bold hover:text-sky-600 transition"
+                            >
+                                Reset Pencarian
                             </button>
                         )}
                     </div>
                 )}
 
-                {/* 3. CHART GRID */}
+                {/* chart grid view */}
                 {!isLoading && filteredDisplayData.length > 0 && (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in-up">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {filteredDisplayData.map((item) => (
                             <div key={item.interface_id} className="relative group">
-                                <TrafficChart 
-                                    data={item.trafficHistory}
-                                    title={item.interface_name}
-                                    routerName={item.Router?.router_name || 'Unknown Router'}
-                                />
+                                <div className="bg-white rounded-3xl border border-slate-100 p-5 shadow-sm hover:shadow-md transition">
+                                    <TrafficChart 
+                                        data={item.trafficHistory}
+                                        title={item.interface_name}
+                                        routerName={item.Router?.router_name || 'Mikrotik'}
+                                    />
+                                </div>
                                 
-                                {/* Overlay jika data kosong untuk TANGGAL TERSEBUT */}
+                                {/* empty overlay */}
                                 {item.trafficHistory.length === 0 && (
-                                    <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] flex flex-col items-center justify-center rounded-xl z-10 border border-slate-200 m-[1px]">
-                                        <div className="bg-white p-4 rounded-full shadow-sm mb-2">
-                                            <Funnel size={32} className="text-slate-300" weight="duotone" />
+                                    <div className="absolute inset-0 bg-white/70 backdrop-blur-[3px] flex flex-col items-center justify-center rounded-3xl z-10 border border-slate-100">
+                                        <div className="bg-white p-3.5 rounded-3xl shadow-sm mb-3 text-slate-400">
+                                            <Funnel size={28} weight="fill" />
                                         </div>
-                                        <p className="text-sm font-bold text-slate-700">Tidak ada history traffic</p>
-                                        <p className="text-xs text-slate-500">Pada tanggal: <span className="font-mono font-bold">{filterDate}</span></p>
+                                        <p className="text-xs font-black text-slate-800 uppercase tracking-wider">Tidak ada riwayat traffic</p>
+                                        <p className="text-[10px] text-slate-500 font-bold mt-0.5">Tanggal: <span className="font-mono">{filterDate}</span></p>
                                         
-                                        {/* Jika hari ini, sarankan sync */}
                                         {filterDate === new Date().toISOString().split('T')[0] && (
                                             <button 
                                                 onClick={handleManualSync}
-                                                className="mt-3 text-xs text-sky-600 hover:text-sky-700 font-medium underline"
+                                                className="mt-3 text-[10px] text-sky-500 hover:text-sky-600 font-bold uppercase tracking-wider transition underline"
                                             >
-                                                Coba Ambil Data Sekarang
+                                                Sync data sekarang
                                             </button>
                                         )}
                                     </div>

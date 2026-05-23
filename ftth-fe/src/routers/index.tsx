@@ -16,6 +16,13 @@ import UserListScreen from '../screens/UserScreen/UserListScreen';
 import PackageFormScreen from '../screens/PackageScreen/PackageFormScreen';
 import PackageListScreen from '../screens/PackageScreen/PackageListScreen';
 import NetworkMap from '../screens/MapScreen/NetworkMap';
+import TopologyTableScreen from '../screens/MapScreen/TopologyTableScreen';
+import IsolirScreen from '../screens/ToolScreen/IsolirScreen';
+import ClientListScreen from '../screens/ClientScreen/ClientListScreen';
+import ClientFormScreen from '../screens/ClientScreen/ClientFormScreen';
+import ODPListScreen from '../screens/ODPScreen/ODPListScreen';
+import MappingListScreen from '../screens/MapScreen/MappingListScreen';
+
 function Router(){
     return (
       <>
@@ -40,7 +47,13 @@ function Router(){
                 <Route path="interfaces/edit/:id" element={<InterfaceFormScreen />} />
                 <Route path="traffic-monitoring" element={<TrafficDashboardScreen />} />
                 <Route path="network-map" element={<NetworkMap />} />
-                <Route path="users" element={<div className="p-4">Halaman Data Pelanggan (Coming Soon)</div>} />
+                <Route path="topology-table" element={<TopologyTableScreen />} />
+                <Route path="isolir" element={<IsolirScreen />} />
+                <Route path="clients" element={<ClientListScreen />} />
+                <Route path="clients/add" element={<ClientFormScreen />} />
+                <Route path="clients/edit/:id" element={<ClientFormScreen />} />
+                <Route path="odp" element={<ODPListScreen />} />
+                <Route path="network-mapping" element={<MappingListScreen />} />
             </Route>
 
         </Routes>

@@ -44,3 +44,34 @@
   @keyframes l15{ 
     100%{transform: rotate(1turn)}
   }
+
+/* ─── Custom SweetAlert2 overrides ─── */
+.swal-wide-popup.swal2-popup {
+  width: 26rem !important;
+  max-width: 94vw !important;
+}
+
+/* ODP "port full" pulse animation */
+@keyframes pulse-red {
+  0%, 100% { box-shadow: 0 0 0 3px #dc2626, 0 4px 6px rgba(0,0,0,.3); }
+  50%       { box-shadow: 0 0 0 6px rgba(220,38,38,.25), 0 4px 6px rgba(0,0,0,.3); }
+}
+
+/* Search highlight pulse animation (gold/amber) */
+@keyframes pulse-gold {
+  0%, 100% { box-shadow: 0 0 0 4px #f59e0b, 0 4px 8px rgba(0,0,0,.35); }
+  50%       { box-shadow: 0 0 0 8px rgba(245,158,11,.3), 0 4px 8px rgba(0,0,0,.35); }
+}
+
+/* SweetAlert2 z-index overrides so it's never covered by Leaflet map or fullscreen */
+.swal2-container {
+  z-index: 100005 !important;
+}
+body.swal2-shown {
+  z-index: 100000 !important;
+}
+
+/* Leaflet crosshair style for adding mode */
+.leaflet-crosshair .leaflet-container {
+  cursor: crosshair !important;
+}

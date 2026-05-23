@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  ftth-backend:
+    build:
+      context: ./ftth-be
+      dockerfile: Dockerfile
+    container_name: ftth-backend-app
+    restart: always
+    network_mode: "host"
+    env_file:
+      - ./ftth-be/.env
+    environment:
+      - TZ=Asia/Jakarta
+
+  ftth-frontend:
+    build:
+      context: ./ftth-fe
+      dockerfile: Dockerfile
+    container_name: ftth-frontend-app
+    restart: always
+    ports:
+      - "3000:80" # Map ke port 3000 di server (bisa diubah sesuai keinginan)
+    depends_on:
+      - ftth-backend

@@ -33,10 +33,13 @@ type ODC struct {
 
 // 4. Tabel Detail Client (Rumah)
 type ClientNode struct {
-	ClientID     int    `gorm:"primaryKey;autoIncrement" json:"client_id"`
-	NodeID       int    `gorm:"unique;not null" json:"node_id"`
-	SubscriberID string `gorm:"type:varchar(50)" json:"subscriber_id"` // ID Pelanggan / PPPoE User
-	PacketName   string `gorm:"type:varchar(50)" json:"packet_name"`
+	ClientID      int    `gorm:"primaryKey;autoIncrement" json:"client_id"`
+	NodeID        int    `gorm:"unique;not null" json:"node_id"`
+	SubscriberID  string `gorm:"type:varchar(50)" json:"subscriber_id"` // ID Pelanggan
+	PacketName    string `gorm:"type:varchar(50)" json:"packet_name"`
+	IPAddress     string `gorm:"type:varchar(50)" json:"ip_address"`
+	OnuSN         string `gorm:"type:varchar(50)" json:"onu_sn"`
+	PppoeUsername string `gorm:"type:varchar(50)" json:"pppoe_username"`
 
 	Node NetworkNode `gorm:"foreignKey:NodeID;references:NodeID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"-"`
 }

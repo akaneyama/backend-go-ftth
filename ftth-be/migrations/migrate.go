@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -24,6 +25,8 @@ func RunMigrations() {
 		&models.ODC{},
 		&models.ODP{},
 		&models.ClientNode{},
+		&models.Client{},
+		&models.TopologyMapping{},
 	)
 	if err != nil {
 		fmt.Println("Migration failed:", err)
@@ -37,6 +40,32 @@ func RunMigrations() {
 	} else {
 		fmt.Println("✅ Semua foreign key berhasil ditambahkan!")
 	}
+
+	// SEEDER: Buat user admin dummy jika belum ada
+	seedAdminUser(db)
+}
+
+func seedAdminUser(db *gorm.DB) {
+	var count int64
+	db.Model(&models.User{}).Where("email = ?", "admin@gmail.com").Count(&count)
+	if count == 0 {
+		hash, err := bcrypt.GenerateFromPassword([]byte("12345678"), 10)
+		if err != nil {
+			log.Printf("⚠️ Gagal generate password bcrypt untuk admin: %v", err)
+			return
+		}
+		admin := models.User{
+			Email:    "admin@gmail.com",
+			Fullname: "Administrator",
+			Password: string(hash),
+			Role:     1, // Admin (1 = Admin, 2 = Teknisi, 3 = User)
+		}
+		if err := db.Create(&admin).Error; err != nil {
+			log.Printf("⚠️ Gagal membuat user admin seed: %v", err)
+		} else {
+			fmt.Println("👤 User Admin Seed berhasil dibuat (admin@gmail.com / 12345678) ✅")
+		}
+	}
 }
 
 func applyForeignKeys(db *gorm.DB) error {
@@ -49,6 +78,36 @@ func applyForeignKeys(db *gorm.DB) error {
 		`ALTER TABLE interface_traffics
 		 ADD CONSTRAINT fk_interface_traffics_monitoring
 		 FOREIGN KEY (interface_id) REFERENCES interface_monitorings(interface_id)
+		 ON DELETE CASCADE ON UPDATE CASCADE;`,
+
+		`ALTER TABLE clients
+		 ADD CONSTRAINT fk_clients_router
+		 FOREIGN KEY (router_id) REFERENCES routers(router_id)
+		 ON DELETE SET NULL ON UPDATE CASCADE;`,
+
+		`ALTER TABLE clients
+		 ADD CONSTRAINT fk_clients_package
+		 FOREIGN KEY (package_id) REFERENCES internetpackages(package_id)
+		 ON DELETE SET NULL ON UPDATE CASCADE;`,
+
+		`ALTER TABLE topology_mappings
+		 ADD CONSTRAINT fk_topology_mappings_router
+		 FOREIGN KEY (router_id) REFERENCES routers(router_id)
+		 ON DELETE CASCADE ON UPDATE CASCADE;`,
+
+		`ALTER TABLE topology_mappings
+		 ADD CONSTRAINT fk_topology_mappings_olt
+		 FOREIGN KEY (olt_node_id) REFERENCES network_nodes(node_id)
+		 ON DELETE CASCADE ON UPDATE CASCADE;`,
+
+		`ALTER TABLE topology_mappings
+		 ADD CONSTRAINT fk_topology_mappings_odc
+		 FOREIGN KEY (odc_node_id) REFERENCES network_nodes(node_id)
+		 ON DELETE CASCADE ON UPDATE CASCADE;`,
+
+		`ALTER TABLE topology_mappings
+		 ADD CONSTRAINT fk_topology_mappings_odp
+		 FOREIGN KEY (odp_node_id) REFERENCES network_nodes(node_id)
 		 ON DELETE CASCADE ON UPDATE CASCADE;`,
 	}
 

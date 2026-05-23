@@ -1,10 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/AxiosInstance';
-import { EyesIcon as Eye, EyeClosedIcon as EyeOff, MailboxIcon as Mail, Lock, CircleNotch } from '@phosphor-icons/react'; // Saya sarankan pakai phosphor-icons agar seragam dengan dashboard
+import { 
+    EyesIcon as Eye, 
+    EyeClosedIcon as EyeOff, 
+    MailboxIcon as Mail, 
+    Lock, 
+    CircleNotch,
+    ShareNetwork 
+} from '@phosphor-icons/react';
 
 import bgkabel from '../../assets/images/bgkabel.jpg';
-// import LogoPerusahaan from '../../assets/images/logo.png'; 
 
 const EyeIconToggle = ({ isOpen }: { isOpen: boolean }) => {
     return isOpen ? <Eye size={20} /> : <EyeOff size={20} />;
@@ -16,7 +22,7 @@ const LoginScreen: React.FC = () => {
     const [showPassword, setShowPassword] = useState(false);
     
     const [isLoading, setIsLoading] = useState(false);
-    const [isCheckingAuth, setIsCheckingAuth] = useState(true); // State untuk loading awal (cek token)
+    const [isCheckingAuth, setIsCheckingAuth] = useState(true);
     
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
@@ -32,14 +38,12 @@ const LoginScreen: React.FC = () => {
                 try {
                     const payloadBase64 = token.split('.')[1];
                     const decodedPayload = JSON.parse(atob(payloadBase64));
-                    
                     const currentTime = Date.now() / 1000;
                     
                     if (decodedPayload.exp < currentTime) {
                         console.log("Token expired, silakan login ulang.");
                         localStorage.removeItem('jwt_token');
                     } else {
-                        // Token Masih Valid -> Auto Redirect
                         console.log("Token valid, redirecting...");
                         navigate('/admin', { replace: true });
                         return; 
@@ -67,7 +71,6 @@ const LoginScreen: React.FC = () => {
             
             if (response.data.status === 'success' && response.data.data.token) {
                 const token = response.data.data.token;
-
         
                 try {
                     const payloadBase64 = token.split('.')[1];
@@ -75,7 +78,7 @@ const LoginScreen: React.FC = () => {
                     
                     if ([1, 2, 3].includes(decodedPayload.role)) {
                         localStorage.setItem('jwt_token', token);
-                        setSuccess('Login berhasil! Mengalihkan...');
+                        setSuccess('Login berhasil! Mengalihkan ke dashboard...');
                         
                         setTimeout(() => {
                             navigate('/admin');
@@ -104,76 +107,95 @@ const LoginScreen: React.FC = () => {
 
     if (isCheckingAuth) {
         return (
-            <div className="flex min-h-screen items-center justify-center bg-slate-50">
+            <div className="flex min-h-screen items-center justify-center bg-slate-950">
                 <div className="flex flex-col items-center gap-3">
-                    <CircleNotch className="animate-spin text-sky-600" size={40} />
-                    <p className="text-slate-500 text-sm font-medium">Memeriksa sesi login...</p>
+                    <CircleNotch className="animate-spin text-sky-400" size={40} />
+                    <p className="text-slate-400 text-xs font-bold uppercase tracking-wider animate-pulse">Memeriksa sesi login...</p>
                 </div>
             </div>
         );
     }
     
     return (
-        <div className="flex min-h-screen bg-slate-100">
+        <div className="flex min-h-screen bg-slate-950 relative overflow-hidden font-sans">
+            {/* Background decorative blobs */}
+            <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-sky-500/10 rounded-full blur-[120px] pointer-events-none" />
+            <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-indigo-500/10 rounded-full blur-[120px] pointer-events-none" />
+
+            {/* --- LEFT PANEL: IMAGE BANNER --- */}
             <div 
-                className="hidden lg:flex w-1/2 flex-col items-center justify-center bg-cover bg-center p-12 text-white relative" 
+                className="hidden lg:flex w-1/2 flex-col items-center justify-center bg-cover bg-center p-12 text-white relative border-r border-slate-900" 
                 style={{ backgroundImage: `url(${bgkabel})` }}
             >
-                <div className="absolute inset-0 bg-sky-900/80 z-0"></div>
-                <div className="relative z-10 text-center animate-fade-in">
-                    <h1 className="text-3xl font-bold tracking-tight">
-                        Sistem Informasi Jaringan
-                    </h1>
-                    <p className="mt-2 text-lg text-sky-200">
-                        Manajemen Jaringan Fiber To The Home (FTTH)
-                    </p>
+                <div className="absolute inset-0 bg-slate-950/85 z-0" />
+                
+                <div className="relative z-10 text-center space-y-6 max-w-md">
+                    <div className="inline-flex p-4 rounded-3xl bg-slate-900/60 border border-slate-800 backdrop-blur-md shadow-2xl">
+                        <ShareNetwork size={48} className="text-sky-400 drop-shadow-[0_0_12px_rgba(56,189,248,0.5)] animate-pulse" weight="fill" />
+                    </div>
+                    <div className="space-y-3">
+                        <h1 className="text-2xl font-black tracking-widest uppercase bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-100 to-sky-400">
+                            Sistem Informasi Manajemen Jaringan
+                        </h1>
+                    </div>
                 </div>
             </div>
-            <div className="flex w-full lg:w-1/2 items-center justify-center p-6 sm:p-8">
-                <div className="w-full max-w-sm bg-white p-8 rounded-xl shadow-lg lg:shadow-none lg:bg-transparent lg:p-0">
-                    <div className="text-center mb-8 lg:text-left">
-                        <h1 className="text-2xl font-bold text-slate-800">Selamat Datang</h1>
-                        <p className="text-slate-500 text-sm mt-1">Silakan masuk ke akun Anda.</p>
+
+            {/* --- RIGHT PANEL: FORM --- */}
+            <div className="flex w-full lg:w-1/2 items-center justify-center p-6 sm:p-12 relative z-10">
+                <div className="w-full max-w-md bg-slate-900/40 border border-slate-800/80 p-8 rounded-3xl shadow-2xl backdrop-blur-xl space-y-8">
+                    
+                    {/* Header Card (Logo shows on Mobile) */}
+                    <div className="text-center space-y-4">
+                        <div className="lg:hidden inline-flex p-3 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl mb-2">
+                            <ShareNetwork size={32} className="text-sky-400 drop-shadow-[0_0_8px_rgba(56,189,248,0.5)] animate-pulse" weight="fill" />
+                        </div>
+                        <div className="space-y-1">
+                            <h2 className="text-xl font-black text-white tracking-tight">Selamat Datang</h2>
+                            <p className="text-slate-400 text-xs font-semibold">Silakan masuk untuk mengelola sistem jaringan.</p>
+                        </div>
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-5">
-                      
+                        {/* Status Alerts */}
                         {error && (
-                            <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-r-md text-sm animate-shake" role="alert">
-                                <p className="font-medium">Login Gagal</p>
-                                <p>{error}</p>
+                            <div className="bg-rose-500/10 border border-rose-500/20 text-rose-400 p-4 rounded-2xl text-xs space-y-1" role="alert">
+                                <p className="font-black uppercase tracking-wider text-[10px]">Login Gagal</p>
+                                <p className="font-semibold leading-relaxed">{error}</p>
                             </div>
                         )}
                         {success && (
-                            <div className="bg-green-50 border-l-4 border-green-500 text-green-700 p-4 rounded-r-md text-sm animate-pulse" role="alert">
-                                <p className="font-medium">Berhasil!</p>
-                                <p>{success}</p>
+                            <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-4 rounded-2xl text-xs space-y-1 animate-pulse" role="alert">
+                                <p className="font-black uppercase tracking-wider text-[10px]">Berhasil!</p>
+                                <p className="font-semibold leading-relaxed">{success}</p>
                             </div>
                         )}
                         
-                        <div>
-                            <label htmlFor="email" className="text-sm font-medium text-slate-700 mb-1 block">Email</label>
+                        {/* Email Input */}
+                        <div className="space-y-1.5">
+                            <label htmlFor="email" className="text-[10px] font-black uppercase tracking-widest text-slate-400 block ml-1">Email Address</label>
                             <div className="relative">
-                                <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                                    <Mail size={20} />
+                                <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-slate-500">
+                                    <Mail size={18} />
                                 </span>
                                 <input 
                                     id="email" 
                                     type="email" 
                                     value={email} 
                                     onChange={(e) => setEmail(e.target.value)} 
-                                    placeholder="contoh@email.com" 
-                                    className="w-full pl-10 pr-3 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 transition-all shadow-sm" 
+                                    placeholder="nama@email.com" 
+                                    className="w-full pl-11 pr-4 py-3 bg-slate-950/65 border border-slate-800/80 rounded-2xl text-xs font-semibold text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all" 
                                     required 
                                 />
                             </div>
                         </div>
 
-                        <div>
-                            <label htmlFor="password" className="text-sm font-medium text-slate-700 mb-1 block">Password</label>
+                        {/* Password Input */}
+                        <div className="space-y-1.5">
+                            <label htmlFor="password" className="text-[10px] font-black uppercase tracking-widest text-slate-400 block ml-1">Password</label>
                             <div className="relative">
-                                <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                                    <Lock size={20} />
+                                <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-slate-500">
+                                    <Lock size={18} />
                                 </span>
                                 <input 
                                     id="password" 
@@ -181,13 +203,13 @@ const LoginScreen: React.FC = () => {
                                     value={password} 
                                     onChange={(e) => setPassword(e.target.value)} 
                                     placeholder="••••••••" 
-                                    className="w-full pl-10 pr-10 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 transition-all shadow-sm" 
+                                    className="w-full pl-11 pr-10 py-3 bg-slate-950/65 border border-slate-800/80 rounded-2xl text-xs font-semibold text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all" 
                                     required 
                                 />
                                 <button 
                                     type="button" 
                                     onClick={() => setShowPassword(!showPassword)} 
-                                    className="absolute inset-y-0 right-0 px-3 flex items-center text-slate-400 hover:text-sky-600 transition-colors"
+                                    className="absolute inset-y-0 right-0 px-4 flex items-center text-slate-500 hover:text-sky-400 transition-colors"
                                     title={showPassword ? "Sembunyikan password" : "Tampilkan password"}
                                 >
                                     <EyeIconToggle isOpen={showPassword} />
@@ -195,13 +217,18 @@ const LoginScreen: React.FC = () => {
                             </div>
                         </div>
 
+                        {/* Submit Button */}
                         <button 
                             type="submit" 
                             disabled={isLoading} 
-                            className="w-full bg-sky-600 text-white font-semibold py-3 px-4 rounded-lg hover:bg-sky-700 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed transition-all duration-200 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 flex justify-center items-center gap-2"
+                            className="w-full bg-gradient-to-r from-sky-500 to-indigo-650 hover:from-sky-600 hover:to-indigo-700 text-white font-extrabold text-xs py-3.5 px-4 rounded-2xl transition-all duration-300 shadow-lg shadow-sky-500/10 active:scale-[0.98] disabled:opacity-75 disabled:cursor-not-allowed flex justify-center items-center gap-2"
                         >
-                            {isLoading && <CircleNotch className="animate-spin" size={20}/>}
-                            {isLoading ? 'Memproses...' : 'Masuk'}
+                            {isLoading ? (
+                                <CircleNotch className="animate-spin" size={16}/>
+                            ) : (
+                                <Lock size={14} weight="bold" />
+                            )}
+                            {isLoading ? 'MEMPROSES...' : 'MASUK KE DASHBOARD'}
                         </button>
                     </form>
                 </div>

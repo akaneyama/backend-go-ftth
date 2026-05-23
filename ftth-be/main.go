@@ -50,11 +50,13 @@ func main() {
 
 	app := fiber.New()
 	app.Use(cors.New(cors.Config{
-		  AllowOrigins: "https://trafficmon.daffaaditya.my.id",
+		AllowOrigins:     "https://trafficmon.daffaaditya.my.id, http://localhost:3000, http://127.0.0.1:3000, http://localhost:5173, http://127.0.0.1:5173",
 		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
 		AllowMethods:     "GET,POST,PUT,DELETE,OPTIONS,PATCH",
 		AllowCredentials: true,
 	}))
+
+	app.Static("/uploads", "./uploads")
 
 	routes.UserRoutes(app)
 	routes.RouterRoutes(app)
@@ -63,6 +65,8 @@ func main() {
 	routes.InternetPackageRoutes(app)
 	routes.ConfigurationRoutes(app)
 	routes.TopologyRoutes(app)
+	routes.ClientRoutes(app)
+	routes.MappingRoutes(app)
 
 	log.Fatal(app.Listen(":8080"))
 }

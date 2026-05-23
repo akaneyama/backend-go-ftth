@@ -78,70 +78,71 @@ const PackageListScreen: React.FC = () => {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            {/* Header Area */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 to-indigo-950 p-6 rounded-3xl text-white shadow-xl">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-                        <PackageIcon weight="duotone" className="text-sky-600"/>
+                    <h2 className="text-2xl font-black tracking-tight flex items-center gap-2">
+                        <PackageIcon size={28} weight="fill" className="text-sky-400" />
                         Manajemen Paket Internet
-                    </h1>
-                    <p className="text-slate-500 text-sm">Atur harga dan limit bandwidth paket layanan.</p>
+                    </h2>
+                    <p className="text-xs text-slate-300 mt-1">Kelola harga layanan bulanan, limitasi bandwidth unggah (upload) & unduh (download) pelanggan secara modular.</p>
                 </div>
-                <button 
-                    onClick={() => navigate('/admin/packages/add')}
-                    className="inline-flex items-center justify-center gap-2 bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 rounded-lg transition-all text-sm font-medium shadow-sm active:scale-95"
-                >
-                    <Plus size={18} weight="bold" />
-                    Tambah Paket
-                </button>
+                <div>
+                    <button 
+                        onClick={() => navigate('/admin/packages/add')}
+                        className="bg-sky-500 hover:bg-sky-600 text-white px-5 py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 active:scale-95 shadow-md shadow-sky-500/25 transition-all duration-300"
+                    >
+                        <Plus size={16} weight="bold" /> Tambah Paket Baru
+                    </button>
+                </div>
             </div>
 
             {/* Search Bar */}
             <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <MagnifyingGlass className="text-slate-400" size={20} />
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <MagnifyingGlass className="text-slate-400" size={18} />
                 </div>
                 <input 
                     type="text"
-                    placeholder="Cari nama paket..."
+                    placeholder="Cari berdasarkan nama paket layanan..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all shadow-sm"
+                    className="w-full pl-11 pr-4 py-3 bg-white border border-slate-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all shadow-sm text-xs font-semibold text-slate-700 placeholder:text-slate-400"
                 />
             </div>
 
             {/* Content Grid */}
             {isLoading ? (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {[1, 2, 3].map((i) => (
-                        <div key={i} className="bg-white h-48 rounded-xl border border-slate-200 p-6 animate-pulse">
-                            <div className="h-6 bg-slate-100 rounded w-1/2 mb-4"></div>
-                            <div className="h-4 bg-slate-100 rounded w-3/4 mb-2"></div>
-                            <div className="h-4 bg-slate-100 rounded w-1/4"></div>
+                        <div key={i} className="bg-white h-52 rounded-3xl border border-slate-100 p-6 animate-pulse space-y-4">
+                            <div className="h-6 bg-slate-100 rounded-xl w-1/2"></div>
+                            <div className="h-10 bg-slate-50 rounded-xl w-3/4"></div>
+                            <div className="h-4 bg-slate-100 rounded-xl w-1/4"></div>
                         </div>
                     ))}
                 </div>
             ) : filteredPackages.length === 0 ? (
-                <div className="text-center py-16 bg-slate-50 rounded-xl border border-dashed border-slate-300">
-                    <PackageIcon className="mx-auto text-slate-300 mb-2" size={48} weight="duotone"/>
-                    <p className="text-slate-500">Belum ada paket internet.</p>
+                <div className="text-center py-16 bg-slate-50 rounded-3xl border border-dashed border-slate-350">
+                    <PackageIcon className="mx-auto text-slate-300 mb-2" size={48} weight="fill"/>
+                    <p className="text-slate-400 text-xs font-bold">Belum ada paket internet terdaftar.</p>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredPackages.map((pkg) => (
-                        <div key={pkg.package_id} className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden flex flex-col group">
-                            {/* Card Header (Gradient) */}
-                            <div className="p-6 bg-gradient-to-br from-slate-50 to-white border-b border-slate-100">
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                        <h3 className="text-lg font-bold text-slate-800 group-hover:text-sky-600 transition-colors">{pkg.package_name}</h3>
-                                        <div className="mt-2 flex items-baseline gap-1">
-                                            <span className="text-2xl font-bold text-sky-600">{formatRupiah(pkg.package_price)}</span>
-                                            <span className="text-xs text-slate-400">/bulan</span>
+                        <div key={pkg.package_id} className="bg-white rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col group">
+                            {/* Card Header */}
+                            <div className="p-6 bg-gradient-to-br from-slate-50/50 to-white border-b border-slate-50">
+                                <div className="flex justify-between items-start gap-3">
+                                    <div className="min-w-0 flex-1">
+                                        <h3 className="text-sm font-extrabold text-slate-800 group-hover:text-sky-600 transition-colors truncate">{pkg.package_name}</h3>
+                                        <div className="mt-2.5 flex items-baseline gap-1">
+                                            <span className="text-xl font-black text-sky-600 tracking-tight">{formatRupiah(pkg.package_price)}</span>
+                                            <span className="text-[10px] text-slate-400 font-bold">/ bln</span>
                                         </div>
                                     </div>
-                                    <div className="p-2 bg-sky-50 rounded-lg text-sky-600">
-                                        <WifiHigh size={24} weight="bold"/>
+                                    <div className="p-2.5 bg-sky-50 text-sky-500 rounded-2xl ring-4 ring-sky-500/5">
+                                        <WifiHigh size={20} weight="bold"/>
                                     </div>
                                 </div>
                             </div>
@@ -149,41 +150,41 @@ const PackageListScreen: React.FC = () => {
                             {/* Card Body */}
                             <div className="p-6 flex-1 space-y-4">
                                 {/* Limit Info */}
-                                <div className="flex items-center justify-between bg-slate-50 p-3 rounded-lg border border-slate-100">
-                                    <div className="flex flex-col items-center flex-1 border-r border-slate-200">
-                                        <div className="flex items-center gap-1 text-xs text-slate-500 uppercase font-bold mb-1">
-                                            <ArrowDown className="text-green-500" weight="bold"/> Download
+                                <div className="flex items-center justify-between bg-slate-50/70 p-3 rounded-2xl border border-slate-100/50">
+                                    <div className="flex flex-col items-center flex-1 border-r border-slate-100">
+                                        <div className="flex items-center gap-1 text-[9px] text-slate-400 uppercase font-black tracking-wider mb-1">
+                                            <ArrowDown className="text-green-500 animate-bounce" weight="bold" size={10}/> Download
                                         </div>
-                                        <span className="font-mono font-bold text-slate-700">{pkg.package_limit.split('/')[1] || '?'}</span>
+                                        <span className="font-mono font-extrabold text-xs text-slate-700">{pkg.package_limit.split('/')[1] || '?'}</span>
                                     </div>
                                     <div className="flex flex-col items-center flex-1">
-                                        <div className="flex items-center gap-1 text-xs text-slate-500 uppercase font-bold mb-1">
-                                            <ArrowUp className="text-purple-500" weight="bold"/> Upload
+                                        <div className="flex items-center gap-1 text-[9px] text-slate-400 uppercase font-black tracking-wider mb-1">
+                                            <ArrowUp className="text-purple-500" weight="bold" size={10}/> Upload
                                         </div>
-                                        <span className="font-mono font-bold text-slate-700">{pkg.package_limit.split('/')[0] || '?'}</span>
+                                        <span className="font-mono font-extrabold text-xs text-slate-700">{pkg.package_limit.split('/')[0] || '?'}</span>
                                     </div>
                                 </div>
 
                                 {/* Deskripsi */}
-                                <div className="text-sm text-slate-500 leading-relaxed min-h-[40px]">
-                                    {pkg.package_desc}
+                                <div className="text-xs text-slate-500 leading-relaxed font-semibold min-h-[40px]">
+                                    {pkg.package_desc || 'Tidak ada deskripsi layanan.'}
                                 </div>
                             </div>
 
                             {/* Card Footer (Actions) */}
-                            <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex gap-3">
+                            <div className="p-4 border-t border-slate-50 bg-slate-50/30 flex gap-3">
                                 <button 
                                     onClick={() => navigate(`/admin/packages/edit/${pkg.package_id}`)}
-                                    className="flex-1 py-2 flex items-center justify-center gap-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-sky-50 hover:text-sky-700 hover:border-sky-200 transition-all"
+                                    className="flex-1 py-2 flex items-center justify-center gap-1.5 text-xs font-bold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-sky-50 hover:text-sky-700 hover:border-sky-200 active:scale-95 transition-all duration-300"
                                 >
-                                    <PencilSimple weight="bold"/> Edit
+                                    <PencilSimple weight="bold" size={14}/> Edit Paket
                                 </button>
                                 <button 
                                     onClick={() => handleDelete(pkg.package_id)}
-                                    className="py-2 px-3 flex items-center justify-center text-red-500 bg-white border border-slate-200 rounded-lg hover:bg-red-50 hover:border-red-200 transition-all"
+                                    className="py-2 px-3 flex items-center justify-center text-red-500 bg-white border border-slate-200 rounded-xl hover:bg-red-50 hover:border-red-200 active:scale-95 transition-all duration-300"
                                     title="Hapus Paket"
                                 >
-                                    <Trash weight="bold" size={18}/>
+                                    <Trash weight="bold" size={15}/>
                                 </button>
                             </div>
                         </div>

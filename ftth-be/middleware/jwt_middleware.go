@@ -11,16 +11,19 @@ import (
 func JWTProtected() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		authHeader := c.Get("Authorization")
+		var tokenString string
 		if authHeader == "" {
-			return utils.Failed(c, "missing authorization header")
+			tokenString = c.Query("token")
+			if tokenString == "" {
+				return utils.Failed(c, "missing authorization header")
+			}
+		} else {
+			parts := strings.Split(authHeader, " ")
+			if len(parts) != 2 || parts[0] != "Bearer" {
+				return utils.Failed(c, "invalid authorization format, use 'Bearer <token>'")
+			}
+			tokenString = parts[1]
 		}
-
-		parts := strings.Split(authHeader, " ")
-		if len(parts) != 2 || parts[0] != "Bearer" {
-			return utils.Failed(c, "invalid authorization format, use 'Bearer <token>'")
-		}
-
-		tokenString := parts[1]
 		claims := jwt.MapClaims{}
 
 		token, err := jwt.ParseWithClaims(tokenString, claims, func(t *jwt.Token) (interface{}, error) {
