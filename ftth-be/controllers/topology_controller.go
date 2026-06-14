@@ -58,10 +58,10 @@ func GetNetworkTopology(c *fiber.Ctx) error {
 		Where(`
 			type != 'CLIENT'
 			OR (
-				type = 'CLIENT' AND node_id IN (
-					SELECT cn.node_id FROM client_nodes cn
+				type = 'CLIENT' AND NOT EXISTS (
+					SELECT 1 FROM client_nodes cn
 					INNER JOIN clients c ON c.client_id = CAST(cn.subscriber_id AS UNSIGNED)
-					WHERE c.deleted_at IS NULL
+					WHERE cn.node_id = network_nodes.node_id AND c.deleted_at IS NOT NULL
 				)
 			)
 		`).
@@ -73,6 +73,19 @@ func GetNetworkTopology(c *fiber.Ctx) error {
 	if err := config.DB.Preload("SourceNode").Preload("TargetNode").Find(&cables).Error; err != nil {
 		return utils.Failed(c, err.Error())
 	}
+
+	// 2a. Saring cables agar koneksi ke node yang disembunyikan (misal CLIENT soft-deleted) ikut disembunyikan
+	activeNodeIDs := make(map[int]bool)
+	for _, node := range nodes {
+		activeNodeIDs[node.NodeID] = true
+	}
+	activeCables := []models.NetworkCable{}
+	for _, cable := range cables {
+		if activeNodeIDs[cable.SourceNodeID] && activeNodeIDs[cable.TargetNodeID] {
+			activeCables = append(activeCables, cable)
+		}
+	}
+	cables = activeCables
 
 	// 3. FIX N+1 QUERY: Hitung semua koneksi kabel per node dalam 1 query
 	type NodeCount struct {
@@ -257,6 +270,14 @@ func AddNetworkNode(c *fiber.Ctx) error {
 	if req.Latitude == 0 || req.Longitude == 0 {
 		return utils.Failed(c, "Koordinat wajib diisi")
 	}
+
+	// Auto-correct coordinates if swapped (latitude must be between -90 and 90)
+	if req.Latitude < -90 || req.Latitude > 90 {
+		if req.Longitude >= -90 && req.Longitude <= 90 {
+			req.Latitude, req.Longitude = req.Longitude, req.Latitude
+		}
+	}
+
 	if req.Name == "" {
 		return utils.Failed(c, "Nama node wajib diisi")
 	}
@@ -310,41 +331,66 @@ func AddNetworkNode(c *fiber.Ctx) error {
 			}
 
 		case models.TypeClient:
-			subscriberID := "NEW"
+			// 1. Tentukan apakah menggunakan pelanggan CRM yang sudah ada atau buat baru secara otomatis
+			var crmClientID int
+			var existingClient models.Client
+			
+			useExisting := false
 			if req.SubscriberID != "" {
-				subscriberID = req.SubscriberID
-			}
-			clientNode := models.ClientNode{
-				NodeID:       node.NodeID,
-				SubscriberID: subscriberID,
-				PacketName:   req.PacketName,
-			}
-			if err := tx.Create(&clientNode).Error; err != nil {
-				return err
-			}
-
-			// OTOMATIS TAMBAHKAN KE DAFTAR PELANGGAN CRM UTAMA
-			crmClient := models.Client{
-				Name:      node.Name,
-				Address:   node.Description,
-				Latitude:  node.Latitude,
-				Longitude: node.Longitude,
-			}
-
-			// Cari paket internet yang sesuai
-			if req.PacketName != "" {
-				var pkg models.Internetpackage
-				if err := tx.Where("package_name = ? AND is_deleted = 0", req.PacketName).First(&pkg).Error; err == nil {
-					crmClient.PackageID = &pkg.PackageID
+				if parsedID, err := strconv.Atoi(req.SubscriberID); err == nil {
+					if err := tx.First(&existingClient, parsedID).Error; err == nil {
+						useExisting = true
+						crmClientID = existingClient.ClientID
+						
+						// Sinkronkan koordinat & router ke pelanggan CRM yang sudah ada
+						existingClient.Latitude = node.Latitude
+						existingClient.Longitude = node.Longitude
+						if node.Description != "" {
+							existingClient.Address = node.Description
+						}
+						if node.LinkedRouterID != nil {
+							existingClient.RouterID = node.LinkedRouterID.String()
+						}
+						tx.Save(&existingClient)
+					}
 				}
 			}
 
-			// Cari penampung router jika diset
-			if node.LinkedRouterID != nil {
-				crmClient.RouterID = node.LinkedRouterID.String()
+			if !useExisting {
+				// Buat pelanggan CRM baru secara otomatis
+				crmClient := models.Client{
+					Name:      node.Name,
+					Address:   node.Description,
+					Latitude:  node.Latitude,
+					Longitude: node.Longitude,
+				}
+
+				// Cari paket internet yang sesuai
+				if req.PacketName != "" {
+					var pkg models.Internetpackage
+					if err := tx.Where("package_name = ? AND is_deleted = 0", req.PacketName).First(&pkg).Error; err == nil {
+						crmClient.PackageID = &pkg.PackageID
+					}
+				}
+
+				// Cari penampung router jika diset
+				if node.LinkedRouterID != nil {
+					crmClient.RouterID = node.LinkedRouterID.String()
+				}
+
+				if err := tx.Create(&crmClient).Error; err != nil {
+					return err
+				}
+				crmClientID = crmClient.ClientID
 			}
 
-			if err := tx.Create(&crmClient).Error; err != nil {
+			// 2. Buat ClientNode dengan link ID pelanggan CRM yang valid (menjamin inner join di topologi sukses)
+			clientNode := models.ClientNode{
+				NodeID:       node.NodeID,
+				SubscriberID: strconv.Itoa(crmClientID),
+				PacketName:   req.PacketName,
+			}
+			if err := tx.Create(&clientNode).Error; err != nil {
 				return err
 			}
 		}
@@ -367,6 +413,13 @@ func UpdateNetworkNode(c *fiber.Ctx) error {
 
 	if err := c.BodyParser(&input); err != nil {
 		return utils.Failed(c, "Invalid body")
+	}
+
+	// Auto-correct coordinates if swapped (latitude must be between -90 and 90)
+	if input.Latitude < -90 || input.Latitude > 90 {
+		if input.Longitude >= -90 && input.Longitude <= 90 {
+			input.Latitude, input.Longitude = input.Longitude, input.Latitude
+		}
 	}
 
 	var node models.NetworkNode

@@ -1,25 +1,26 @@
 import React, { useState, useEffect, Fragment } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { Transition, Menu } from '@headlessui/react';
-import { 
-    SquaresFour, 
-    Cloud as RouterIcon, 
-    SignOut, 
-    Bell, 
-    List, 
-    X, 
-    CaretDown, 
-    MagnifyingGlass, 
-    Network, 
-    Graph, 
-    User, 
-    Package, 
-    LineSegmentIcon, 
-    Table, 
-    Prohibit, 
+import {
+    SquaresFour,
+    Cloud as RouterIcon,
+    SignOut,
+    Bell,
+    List,
+    X,
+    CaretDown,
+    MagnifyingGlass,
+    Network,
+    Graph,
+    User,
+    Package,
+    LineSegmentIcon,
+    Table,
+    Prohibit,
     Users,
     Broadcast,
     ShareNetwork,
+    WifiHigh,
 } from "@phosphor-icons/react";
 
 interface UserData {
@@ -28,19 +29,40 @@ interface UserData {
     role: number;
 }
 
-const navigationLinks = [
-    { name: 'Dashboard', href: '/admin', icon: SquaresFour, end: true },
-    { name: 'Pelanggan', href: '/admin/clients', icon: Users, end: false },
-    { name: 'ODP', href: '/admin/odp', icon: Broadcast, end: false },
-    { name: 'Pengguna', href: '/admin/users', icon: User, end: false },
-    { name: 'Paket', href: '/admin/packages', icon: Package, end: false },
-    { name: 'Router', href: '/admin/routers', icon: RouterIcon, end: false },
-    { name: 'Interface', href: '/admin/interfaces', icon: Network, end: false },
-    { name: 'Traffic', href: '/admin/traffic-monitoring', icon: Graph, end: false },
-    { name: 'Topologi', href: '/admin/network-map', icon: LineSegmentIcon, end: false },
-    { name: 'Data Topologi', href: '/admin/topology-table', icon: Table, end: false },
-    { name: 'Mapping Jaringan', href: '/admin/network-mapping', icon: ShareNetwork, end: false },
-    { name: 'Isolir Batch', href: '/admin/isolir', icon: Prohibit, end: false },
+const navigationGroups = [
+    {
+        title: 'Utama',
+        links: [
+            { name: 'Dashboard', href: '/admin', icon: SquaresFour, end: true },
+        ]
+    },
+    {
+        title: 'Layanan & Pelanggan',
+        links: [
+            { name: 'Pelanggan', href: '/admin/clients', icon: Users, end: false },
+            { name: 'Paket Internet', href: '/admin/packages', icon: Package, end: false },
+            { name: 'Isolir Batch', href: '/admin/isolir', icon: Prohibit, end: false },
+            { name: 'Pengguna Sistem', href: '/admin/users', icon: User, end: false },
+        ]
+    },
+    {
+        title: 'Infrastruktur Jaringan',
+        links: [
+            { name: 'Router Mikrotik', href: '/admin/routers', icon: RouterIcon, end: false },
+            { name: 'Interface Jaringan', href: '/admin/interfaces', icon: Network, end: false },
+            { name: 'ODP / Distribusi', href: '/admin/odp', icon: Broadcast, end: false },
+            { name: 'Manajemen Modem', href: '/admin/genie-acs', icon: WifiHigh, end: false },
+        ]
+    },
+    {
+        title: 'Monitoring & Topologi',
+        links: [
+            { name: 'Traffic Monitoring', href: '/admin/traffic-monitoring', icon: Graph, end: false },
+            { name: 'Visualisasi Topologi', href: '/admin/network-map', icon: LineSegmentIcon, end: false },
+            { name: 'Data Topologi', href: '/admin/topology-table', icon: Table, end: false },
+            { name: 'Mapping Jaringan', href: '/admin/network-mapping', icon: ShareNetwork, end: false },
+        ]
+    }
 ];
 
 
@@ -57,9 +79,9 @@ const DashboardLayout: React.FC = () => {
                 const payloadBase64 = token.split('.')[1];
                 const decodedPayload = atob(payloadBase64);
                 const parsed = JSON.parse(decodedPayload);
-                
+
                 setUserData({
-                    fullname: parsed.fullname || 'Admin', 
+                    fullname: parsed.fullname || 'Admin',
                     email: parsed.email || 'admin@ftth.com',
                     role: parsed.role || 1
                 });
@@ -76,14 +98,14 @@ const DashboardLayout: React.FC = () => {
         navigate('/login', { replace: true });
     };
 
-    const pageTitle = navigationLinks.find(link => {
+    const pageTitle = navigationGroups.flatMap(g => g.links).find(link => {
         if (link.end) return location.pathname === link.href;
         return location.pathname.startsWith(link.href);
     })?.name || 'Dashboard';
 
     return (
         <div className="flex h-screen bg-slate-50 overflow-hidden font-sans">
-            
+
             {/* --- MOBILE SIDEBAR --- */}
             <Transition.Root show={sidebarOpen} as={Fragment}>
                 <div className="relative z-[10000] lg:hidden">
@@ -93,7 +115,7 @@ const DashboardLayout: React.FC = () => {
                     <div className="fixed inset-0 flex">
                         <Transition.Child as={Fragment} enter="transition ease-in-out duration-300 transform" enterFrom="-translate-x-full" enterTo="translate-x-0" leave="transition ease-in-out duration-300 transform" leaveFrom="translate-x-0" leaveTo="-translate-x-full">
                             <div className="relative mr-16 flex w-full max-w-xs flex-1">
-                                <SidebarContent onLogout={handleLogout} onClose={() => setSidebarOpen(false)} userData={userData} />
+                                <SidebarContent onLogout={handleLogout} onClose={() => setSidebarOpen(false)} />
                                 <div className="absolute left-full top-0 flex w-16 justify-center pt-5">
                                     <button type="button" className="-m-2.5 p-2.5" onClick={() => setSidebarOpen(false)}>
                                         <X className="h-6 w-6 text-white" aria-hidden="true" />
@@ -107,20 +129,20 @@ const DashboardLayout: React.FC = () => {
 
             {/* --- DESKTOP SIDEBAR --- */}
             <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
-                <SidebarContent onLogout={handleLogout} userData={userData} />
+                <SidebarContent onLogout={handleLogout} />
             </div>
 
             {/* --- MAIN CONTENT WRAPPER --- */}
             {/* PERBAIKAN SCROLL: Tambahkan h-full agar wrapper mengisi tinggi layar */}
             <div className="flex flex-1 flex-col lg:pl-72 h-full">
-                
+
                 {/* Header (Sticky) */}
                 <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-slate-200 bg-white px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
                     <button type="button" className="-m-2.5 p-2.5 text-slate-700 lg:hidden" onClick={() => setSidebarOpen(true)}>
                         <List className="h-6 w-6" aria-hidden="true" />
                     </button>
                     <div className="hidden sm:flex flex-1 text-lg font-semibold text-slate-800">{pageTitle}</div>
-                    
+
                     <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6 justify-end">
                         <div className="flex items-center gap-x-4 lg:gap-x-6">
                             <div className="relative hidden md:block">
@@ -129,7 +151,7 @@ const DashboardLayout: React.FC = () => {
                             </div>
                             <div className="h-6 w-px bg-slate-200" aria-hidden="true" />
                             <button type="button" className="-m-2.5 p-2.5 text-slate-400 hover:text-slate-500"><Bell className="h-6 w-6" /></button>
-                            
+
                             {/* User Menu */}
                             <Menu as="div" className="relative">
                                 <Menu.Button className="-m-1.5 flex items-center p-1.5">
@@ -162,13 +184,7 @@ const DashboardLayout: React.FC = () => {
     );
 };
 
-const SidebarContent: React.FC<{ onLogout: () => void; onClose?: () => void; userData: UserData | null }> = ({ onLogout, onClose, userData }) => {
-    const getRoleName = (role?: number) => {
-        if (role === 1) return 'Administrator';
-        if (role === 2) return 'Teknisi';
-        return 'Operator';
-    };
-
+const SidebarContent: React.FC<{ onLogout: () => void; onClose?: () => void }> = ({ onLogout, onClose }) => {
     return (
         <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-slate-800 bg-slate-950 px-6 pb-6">
             <div className="flex h-20 shrink-0 items-center justify-center border-b border-slate-900 mb-2">
@@ -176,67 +192,51 @@ const SidebarContent: React.FC<{ onLogout: () => void; onClose?: () => void; use
                     <ShareNetwork size={30} className="text-sky-400 drop-shadow-[0_0_8px_rgba(56,189,248,0.4)] animate-pulse" weight="fill" />
                 </div>
             </div>
-            
+
             <nav className="flex flex-1 flex-col">
                 <ul role="list" className="flex flex-1 flex-col gap-y-6">
-                    <li>
-                        <div className="text-[10px] font-black leading-6 text-slate-500 uppercase tracking-widest mb-3">Menu Utama</div>
-                        <ul role="list" className="-mx-2 space-y-1.5">
-                            {navigationLinks.map((item) => (
-                                <li key={item.name}>
-                                    <NavLink 
-                                        to={item.href} 
-                                        end={item.end} 
-                                        onClick={onClose} 
-                                        className={({ isActive }) => `group flex items-center gap-x-3 rounded-xl p-2.5 text-xs font-bold transition-all duration-300 border ${
-                                            isActive 
-                                                ? 'bg-gradient-to-r from-sky-500/10 to-indigo-500/10 text-sky-400 border-sky-500/20 shadow-[0_0_12px_rgba(14,165,233,0.08)]' 
+                    {navigationGroups.map((group) => (
+                        <li key={group.title}>
+                            <div className="text-[10px] font-black leading-6 text-slate-500 uppercase tracking-widest mb-3">{group.title}</div>
+                            <ul role="list" className="-mx-2 space-y-1.5">
+                                {group.links.map((item) => (
+                                    <li key={item.name}>
+                                        <NavLink
+                                            to={item.href}
+                                            end={item.end}
+                                            onClick={onClose}
+                                            className={({ isActive }) => `group flex items-center gap-x-3 rounded-xl p-2.5 text-xs font-bold transition-all duration-300 border ${isActive
+                                                ? 'bg-gradient-to-r from-sky-500/10 to-indigo-500/10 text-sky-400 border-sky-500/20 shadow-[0_0_12px_rgba(14,165,233,0.08)]'
                                                 : 'text-slate-400 border-transparent hover:text-white hover:bg-white/5'
-                                        }`}
-                                    >
-                                        {({ isActive }) => (
-                                            <>
-                                                <item.icon 
-                                                    className={`h-5 w-5 shrink-0 transition-colors duration-300 ${
-                                                        isActive ? 'text-sky-400' : 'text-slate-500 group-hover:text-white'
-                                                    }`} 
-                                                    aria-hidden="true" 
-                                                    weight={isActive ? "fill" : "regular"}
-                                                />
-                                                {item.name}
-                                            </>
-                                        )}
-                                    </NavLink>
-                                </li>
-                            ))}
-                        </ul>
-                    </li>
-                    
-                    {/* User Profile Card */}
-                    <li className="mt-auto space-y-4">
-                        {userData && (
-                            <div className="bg-slate-900/50 border border-slate-800/80 rounded-2xl p-3.5 flex items-center gap-3 backdrop-blur-md">
-                                <img 
-                                    className="h-9 w-9 rounded-full ring-2 ring-sky-500/20 object-cover" 
-                                    src={`https://ui-avatars.com/api/?name=${userData.fullname}&background=0ea5e9&color=fff`} 
-                                    alt="Avatar" 
-                                />
-                                <div className="min-w-0 flex-1">
-                                    <p className="text-[11px] font-bold text-white truncate">{userData.fullname}</p>
-                                    <span className={`inline-block mt-1 text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md ${
-                                        userData.role === 1 ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' : 'bg-sky-500/10 text-sky-400 border border-sky-500/20'
-                                    }`}>
-                                        {getRoleName(userData.role)}
-                                    </span>
-                                </div>
-                            </div>
-                        )}
-                        <button 
-                            onClick={onLogout} 
-                            className="group -mx-2 flex w-full gap-x-3 rounded-xl p-2.5 text-xs font-bold text-slate-400 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20 border border-transparent transition-all"
+                                                }`}
+                                        >
+                                            {({ isActive }) => (
+                                                <>
+                                                    <item.icon
+                                                        className={`h-5 w-5 shrink-0 transition-colors duration-300 ${isActive ? 'text-sky-400' : 'text-slate-500 group-hover:text-white'
+                                                            }`}
+                                                        aria-hidden="true"
+                                                        weight={isActive ? "fill" : "regular"}
+                                                    />
+                                                    {item.name}
+                                                </>
+                                            )}
+                                        </NavLink>
+                                    </li>
+                                ))}
+                            </ul>
+                        </li>
+                    ))}
+
+                    {/* Logout Button */}
+                    <li className="mt-auto">
+                        <button
+                            onClick={onLogout}
+                            className="group relative flex w-full justify-center items-center gap-x-3 rounded-xl p-3 text-sm font-bold text-rose-400 bg-rose-500/10 hover:bg-rose-500 hover:text-white border border-rose-500/20 hover:border-rose-500 hover:shadow-[0_0_20px_rgba(244,63,94,0.4)] transition-all duration-300 overflow-hidden"
                         >
-                            <SignOut className="h-5 w-5 shrink-0 text-slate-500 group-hover:text-red-400" aria-hidden="true" />
-                            Logout
+                            <div className="absolute inset-0 bg-gradient-to-r from-rose-600 to-rose-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                            <SignOut className="relative z-10 h-5 w-5 shrink-0 transition-transform duration-300 group-hover:-translate-x-1" aria-hidden="true" weight="bold" />
+                            <span className="relative z-10">Keluar Sistem</span>
                         </button>
                     </li>
                 </ul>

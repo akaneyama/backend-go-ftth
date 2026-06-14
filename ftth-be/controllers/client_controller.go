@@ -97,6 +97,13 @@ func CreateClient(c *fiber.Ctx) error {
 	latitude, _ := strconv.ParseFloat(latitudeStr, 64)
 	longitude, _ := strconv.ParseFloat(longitudeStr, 64)
 
+	// Auto-correct coordinates if swapped (latitude must be between -90 and 90)
+	if latitude < -90 || latitude > 90 {
+		if longitude >= -90 && longitude <= 90 {
+			latitude, longitude = longitude, latitude
+		}
+	}
+
 	// Validasi Router
 	if routerID != "" {
 		var router models.Router
@@ -244,6 +251,13 @@ func UpdateClient(c *fiber.Ctx) error {
 
 	latitude, _ := strconv.ParseFloat(latitudeStr, 64)
 	longitude, _ := strconv.ParseFloat(longitudeStr, 64)
+
+	// Auto-correct coordinates if swapped (latitude must be between -90 and 90)
+	if latitude < -90 || latitude > 90 {
+		if longitude >= -90 && longitude <= 90 {
+			latitude, longitude = longitude, latitude
+		}
+	}
 
 	if routerID != "" {
 		var router models.Router
@@ -735,6 +749,13 @@ func ImportClients(c *fiber.Ctx) error {
 			if colMap["longitude"] < len(row) {
 				val := strings.TrimSpace(row[colMap["longitude"]])
 				longitude, _ = strconv.ParseFloat(val, 64)
+			}
+
+			// Auto-correct coordinates if swapped (latitude must be between -90 and 90)
+			if latitude < -90 || latitude > 90 {
+				if longitude >= -90 && longitude <= 90 {
+					latitude, longitude = longitude, latitude
+				}
 			}
 
 			// Validasi apakah Router ID ada di database

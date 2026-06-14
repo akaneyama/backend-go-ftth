@@ -35,7 +35,7 @@ const IsolirScreen: React.FC = () => {
     
     // Router Selection States
     interface RouterOption {
-        router_id: number;
+        router_id: string;
         router_name: string;
     }
     const [routers, setRouters] = useState<RouterOption[]>([]);
@@ -50,7 +50,11 @@ const IsolirScreen: React.FC = () => {
     const [manualPassword, setManualPassword] = useState<string>('');
     const [manualUseSSL, setManualUseSSL] = useState<boolean>(false);
 
+    // Prefix Rules
+    const [prefixRules, setPrefixRules] = useState<Array<{prefix: string, router_id: string}>>([{prefix: '', router_id: ''}]);
+
     // Task States
+    const [previewTargets, setPreviewTargets] = useState<string[] | null>(null);
     const [taskId, setTaskId] = useState<string | null>(null);
     const [taskData, setTaskData] = useState<TaskData | null>(null);
     
@@ -67,6 +71,7 @@ const IsolirScreen: React.FC = () => {
                     setRouters(data);
                     if (data.length > 0) {
                         setSelectedRouterId(data[0].router_id.toString());
+                        setPrefixRules([{prefix: '', router_id: data[0].router_id}]);
                     }
                 }
             } catch (err) {
@@ -98,17 +103,43 @@ const IsolirScreen: React.FC = () => {
         setDragActive(false);
         if (e.dataTransfer.files && e.dataTransfer.files[0]) {
             setFile(e.dataTransfer.files[0]);
+            setPreviewTargets(null);
         }
     };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             setFile(e.target.files[0]);
+            setPreviewTargets(null);
         }
     };
 
-    const handleUpload = async () => {
+    const handlePreview = async () => {
         if (!file) return;
+
+        const formData = new FormData();
+        formData.append('excel_file', file);
+
+        setUploading(true);
+        try {
+            const res = await api.post('/api/tools/isolir/upload', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+
+            if (res.data.status === 'success') {
+                setPreviewTargets(res.data.data.targets);
+            } else {
+                Swal.fire('Gagal', res.data.message || 'Gagal memproses file.', 'error');
+            }
+        } catch (err: any) {
+            Swal.fire('Error', err.response?.data?.message || 'Terjadi kesalahan saat mengunggah file.', 'error');
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const handleProcess = async () => {
+        if (!previewTargets || previewTargets.length === 0) return;
 
         // Validasi input manual jika mode manual dipilih
         if (routerMode === 'manual') {
@@ -122,26 +153,22 @@ const IsolirScreen: React.FC = () => {
             }
         }
 
-        const formData = new FormData();
-        formData.append('excel_file', file);
-        formData.append('router_mode', routerMode);
-        formData.append('target_type', targetType);
-        
-        if (routerMode === 'selected') {
-            formData.append('router_id', selectedRouterId);
-        } else if (routerMode === 'manual') {
-            formData.append('manual_host', manualHost);
-            formData.append('manual_port', manualPort);
-            formData.append('manual_username', manualUsername);
-            formData.append('manual_password', manualPassword);
-            formData.append('manual_use_ssl', manualUseSSL ? 'true' : 'false');
-        }
-
         setUploading(true);
         try {
-            const res = await api.post('/api/tools/isolir/upload', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
+            const payload = {
+                targets: previewTargets,
+                router_mode: routerMode,
+                router_id: selectedRouterId,
+                manual_host: manualHost,
+                manual_port: parseInt(manualPort) || 8728,
+                manual_username: manualUsername,
+                manual_password: manualPassword,
+                manual_use_ssl: manualUseSSL,
+                target_type: targetType,
+                prefix_rules: routerMode === 'prefix' ? prefixRules.filter(r => r.prefix.trim() !== '' && r.router_id !== '') : []
+            };
+
+            const res = await api.post('/api/tools/isolir/process', payload);
 
             if (res.data.status === 'success') {
                 const newTaskId = res.data.data.task_id;
@@ -156,10 +183,10 @@ const IsolirScreen: React.FC = () => {
                 // Start status polling
                 startPolling(newTaskId);
             } else {
-                Swal.fire('Gagal', res.data.message || 'Gagal memproses file.', 'error');
+                Swal.fire('Gagal', res.data.message || 'Gagal memulai isolir.', 'error');
             }
         } catch (err: any) {
-            Swal.fire('Error', err.response?.data?.message || 'Terjadi kesalahan saat mengunggah file.', 'error');
+            Swal.fire('Error', err.response?.data?.message || 'Terjadi kesalahan saat memulai proses.', 'error');
         } finally {
             setUploading(false);
         }
@@ -199,6 +226,7 @@ const IsolirScreen: React.FC = () => {
         setFile(null);
         setTaskId(null);
         setTaskData(null);
+        setPreviewTargets(null);
     };
 
     // Helper: Unduh Log Hasil
@@ -349,39 +377,50 @@ const IsolirScreen: React.FC = () => {
                                 </p>
 
                                 {/* Mode Select Tabs */}
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 bg-slate-100 p-1 rounded-2xl mb-6">
+                                <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 bg-slate-100 p-1 rounded-2xl mb-6">
                                     <button
                                         type="button"
                                         onClick={() => setRouterMode('auto')}
-                                        className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all active:scale-95 ${
+                                        className={`py-2.5 px-3 rounded-xl text-[10px] sm:text-xs font-bold transition-all active:scale-95 ${
                                             routerMode === 'auto'
                                                 ? 'bg-white text-sky-600 shadow-sm border border-slate-200/50'
                                                 : 'text-slate-500 hover:text-slate-800 hover:bg-white/40'
                                         }`}
                                     >
-                                        Pindai Semua Router Aktif
+                                        Semua Router
                                     </button>
                                     <button
                                         type="button"
                                         onClick={() => setRouterMode('selected')}
-                                        className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all active:scale-95 ${
+                                        className={`py-2.5 px-3 rounded-xl text-[10px] sm:text-xs font-bold transition-all active:scale-95 ${
                                             routerMode === 'selected'
                                                 ? 'bg-white text-sky-600 shadow-sm border border-slate-200/50'
                                                 : 'text-slate-500 hover:text-slate-800 hover:bg-white/40'
                                         }`}
                                     >
-                                        Pilih Router Terdaftar
+                                        Pilih Router
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setRouterMode('prefix')}
+                                        className={`py-2.5 px-3 rounded-xl text-[10px] sm:text-xs font-bold transition-all active:scale-95 ${
+                                            routerMode === 'prefix'
+                                                ? 'bg-white text-sky-600 shadow-sm border border-slate-200/50'
+                                                : 'text-slate-500 hover:text-slate-800 hover:bg-white/40'
+                                        }`}
+                                    >
+                                        Berdasarkan Prefix
                                     </button>
                                     <button
                                         type="button"
                                         onClick={() => setRouterMode('manual')}
-                                        className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all active:scale-95 ${
+                                        className={`py-2.5 px-3 rounded-xl text-[10px] sm:text-xs font-bold transition-all active:scale-95 ${
                                             routerMode === 'manual'
                                                 ? 'bg-white text-sky-600 shadow-sm border border-slate-200/50'
                                                 : 'text-slate-500 hover:text-slate-800 hover:bg-white/40'
                                         }`}
                                     >
-                                        Input Kredensial Manual
+                                        Input Manual
                                     </button>
                                 </div>
 
@@ -411,6 +450,68 @@ const IsolirScreen: React.FC = () => {
                                                 ))
                                             )}
                                         </select>
+                                    </div>
+                                )}
+
+                                {routerMode === 'prefix' && (
+                                    <div className="p-4 border border-slate-200 rounded-2xl space-y-4 animate-fade-in">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <span className="p-1.5 bg-sky-50 text-sky-600 rounded-lg"><Info size={20} weight="bold" /></span>
+                                            <h3 className="font-bold text-slate-800 text-sm">Aturan Prefix IP</h3>
+                                        </div>
+                                        <p className="text-[11px] text-slate-400 mb-3 leading-relaxed">
+                                            Tentukan router mana yang akan memproses IP dengan awalan tertentu. Contoh: <b>192.168.</b> ke Router A. Jika target tidak cocok dengan prefix apapun, akan dipindai ke semua router.
+                                        </p>
+                                        
+                                        {prefixRules.map((rule, index) => (
+                                            <div key={index} className="flex flex-col sm:flex-row items-center gap-3">
+                                                <input
+                                                    type="text"
+                                                    placeholder="Prefix (ex: 192.168.)"
+                                                    value={rule.prefix}
+                                                    onChange={(e) => {
+                                                        const newRules = [...prefixRules];
+                                                        newRules[index].prefix = e.target.value;
+                                                        setPrefixRules(newRules);
+                                                    }}
+                                                    className="w-full sm:w-1/2 px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 font-semibold"
+                                                />
+                                                <div className="w-full sm:w-1/2 flex items-center gap-2">
+                                                    <select
+                                                        value={rule.router_id}
+                                                        onChange={(e) => {
+                                                            const newRules = [...prefixRules];
+                                                            newRules[index].router_id = e.target.value;
+                                                            setPrefixRules(newRules);
+                                                        }}
+                                                        className="flex-1 px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 cursor-pointer font-semibold text-slate-700"
+                                                    >
+                                                        <option value="" disabled>Pilih Router</option>
+                                                        {routers.map(r => (
+                                                            <option key={r.router_id} value={r.router_id}>{r.router_name}</option>
+                                                        ))}
+                                                    </select>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const newRules = prefixRules.filter((_, i) => i !== index);
+                                                            setPrefixRules(newRules);
+                                                        }}
+                                                        className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl transition"
+                                                    >
+                                                        Hapus
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        
+                                        <button
+                                            type="button"
+                                            onClick={() => setPrefixRules([...prefixRules, {prefix: '', router_id: routers.length > 0 ? routers[0].router_id.toString() : ''}])}
+                                            className="text-xs font-bold text-sky-600 hover:text-sky-700 bg-sky-50 hover:bg-sky-100 px-3 py-1.5 rounded-lg transition"
+                                        >
+                                            + Tambah Aturan Prefix
+                                        </button>
                                     </div>
                                 )}
 
@@ -554,30 +655,79 @@ const IsolirScreen: React.FC = () => {
                             </div>
                         )}
 
+                        {/* Preview Table */}
+                        {previewTargets && (
+                            <div className="border-t border-slate-100 pt-6 animate-fade-in">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <span className="p-1.5 bg-sky-50 text-sky-600 rounded-lg"><ListBullets size={20} weight="bold" /></span>
+                                    <h3 className="font-bold text-slate-800 text-sm">Pratinjau Data ({previewTargets.length} target)</h3>
+                                </div>
+                                <div className="bg-slate-50 border border-slate-200 rounded-xl overflow-hidden max-h-60 overflow-y-auto mt-4">
+                                    <table className="w-full text-left text-xs text-slate-600">
+                                        <thead className="bg-slate-200/50 sticky top-0 backdrop-blur-sm z-10 shadow-sm">
+                                            <tr>
+                                                <th className="py-2.5 px-4 font-bold text-slate-700 w-16 text-center">No</th>
+                                                <th className="py-2.5 px-4 font-bold text-slate-700">Target IP / Username</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-200/60">
+                                            {previewTargets.map((t, idx) => (
+                                                <tr key={idx} className="hover:bg-sky-50/50 transition-colors">
+                                                    <td className="py-2.5 px-4 text-center font-medium">{idx + 1}</td>
+                                                    <td className="py-2.5 px-4 font-semibold text-slate-800 font-mono">{t}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Submit Actions */}
                         {file && (
                             <div className="mt-8 flex justify-end gap-3 border-t border-slate-100 pt-6">
                                 <button 
-                                    onClick={() => setFile(null)}
+                                    onClick={() => {
+                                        setFile(null);
+                                        setPreviewTargets(null);
+                                    }}
                                     className="px-6 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold transition"
                                 >
                                     Batal
                                 </button>
-                                <button 
-                                    onClick={handleUpload}
-                                    disabled={uploading}
-                                    className="px-8 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 active:scale-95 text-white font-bold transition flex items-center gap-2 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    {uploading ? (
-                                        <>
-                                            <Spinner size={18} className="animate-spin" /> Memproses...
-                                        </>
-                                    ) : (
-                                        <>
-                                            Mulai Isolir Batch <Play size={18} weight="fill" />
-                                        </>
-                                    )}
-                                </button>
+                                {!previewTargets ? (
+                                    <button 
+                                        onClick={handlePreview}
+                                        disabled={uploading}
+                                        className="px-8 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 active:scale-95 text-white font-bold transition flex items-center gap-2 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {uploading ? (
+                                            <>
+                                                <Spinner size={18} className="animate-spin" /> Memproses...
+                                            </>
+                                        ) : (
+                                            <>
+                                                Pratinjau Data <Play size={18} weight="fill" />
+                                            </>
+                                        )}
+                                    </button>
+                                ) : (
+                                    <button 
+                                        onClick={handleProcess}
+                                        disabled={uploading}
+                                        className="px-8 py-2.5 rounded-xl bg-rose-500 hover:bg-rose-600 active:scale-95 text-white font-bold transition flex items-center gap-2 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {uploading ? (
+                                            <>
+                                                <Spinner size={18} className="animate-spin" /> Memproses...
+                                            </>
+                                        ) : (
+                                            <>
+                                                Mulai Isolir Batch <Play size={18} weight="fill" />
+                                            </>
+                                        )}
+                                    </button>
+                                )}
                             </div>
                         )}
                     </div>

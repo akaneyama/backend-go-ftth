@@ -133,8 +133,8 @@ const TrafficChart: React.FC<Props> = ({ data, title, routerName }) => {
             </div>
 
             {/* --- CHART AREA --- */}
-            <div className="flex-1 p-4 min-h-[320px]">
-                <ResponsiveContainer width="100%" height="100%">
+            <div className="w-full p-4">
+                <ResponsiveContainer width="100%" height={320}>
                     <BarChart
                         data={data}
                         margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
@@ -142,11 +142,11 @@ const TrafficChart: React.FC<Props> = ({ data, title, routerName }) => {
                     >
                         {/* Gradients Definitions */}
                         <defs>
-                            <linearGradient id="colorDownload" x1="0" y1="0" x2="0" y2="1">
+                            <linearGradient id={`colorDownload-${title.replace(/\s+/g, '-')}`} x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.9}/>
                                 <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0.6}/>
                             </linearGradient>
-                            <linearGradient id="colorUpload" x1="0" y1="0" x2="0" y2="1">
+                            <linearGradient id={`colorUpload-${title.replace(/\s+/g, '-')}`} x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.9}/>
                                 <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0.6}/>
                             </linearGradient>
@@ -195,11 +195,11 @@ const TrafficChart: React.FC<Props> = ({ data, title, routerName }) => {
                             formatter={(value) => <span className="text-xs font-semibold text-slate-600 ml-1">{value} Speed</span>}
                         />
                         
-                        {/* Bars with Gradient and Radius */}
+                        {/* Bars with Solid Colors */}
                         <Bar 
                             name="Download" 
                             dataKey="DownloadSpeed" 
-                            fill="url(#colorDownload)" 
+                            fill="#0ea5e9" 
                             radius={[4, 4, 0, 0]} 
                             maxBarSize={40}
                             animationDuration={1500}
@@ -207,7 +207,7 @@ const TrafficChart: React.FC<Props> = ({ data, title, routerName }) => {
                         <Bar 
                             name="Upload" 
                             dataKey="UploadSpeed" 
-                            fill="url(#colorUpload)" 
+                            fill="#8b5cf6" 
                             radius={[4, 4, 0, 0]} 
                             maxBarSize={40}
                             animationDuration={1500}

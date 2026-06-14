@@ -22,6 +22,7 @@ import ClientListScreen from '../screens/ClientScreen/ClientListScreen';
 import ClientFormScreen from '../screens/ClientScreen/ClientFormScreen';
 import ODPListScreen from '../screens/ODPScreen/ODPListScreen';
 import MappingListScreen from '../screens/MapScreen/MappingListScreen';
+import GenieACSScreen from '../screens/GenieACSScreen/GenieACSScreen';
 
 function Router(){
     return (
@@ -54,6 +55,7 @@ function Router(){
                 <Route path="clients/edit/:id" element={<ClientFormScreen />} />
                 <Route path="odp" element={<ODPListScreen />} />
                 <Route path="network-mapping" element={<MappingListScreen />} />
+                <Route path="genie-acs" element={<GenieACSScreen />} />
             </Route>
 
         </Routes>

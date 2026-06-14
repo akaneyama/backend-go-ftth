@@ -27,6 +27,7 @@ func RunMigrations() {
 		&models.ClientNode{},
 		&models.Client{},
 		&models.TopologyMapping{},
+		&models.RxPowerHistory{},
 	)
 	if err != nil {
 		fmt.Println("Migration failed:", err)

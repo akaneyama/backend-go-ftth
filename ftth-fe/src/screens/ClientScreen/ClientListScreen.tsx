@@ -20,7 +20,8 @@ import {
     CheckCircle,
     ArrowCounterClockwise,
     FolderSimplePlus,
-    Tag
+    Tag,
+    WifiHigh
 } from '@phosphor-icons/react';
 
 interface InternetPackage {
@@ -37,7 +38,7 @@ interface Client {
     phone: string;
     address: string;
     house_photo: string;
-    router_id: string;
+    router_id?: string;
     fat: string;
     package_id?: number;
     latitude: number;
@@ -45,6 +46,7 @@ interface Client {
     ip_address?: string;
     onu_sn?: string;
     pppoe_username?: string;
+    rx_power?: string;
     created_at: string;
     router?: {
         router_name: string;
@@ -264,6 +266,44 @@ const ClientListScreen: React.FC = () => {
         }
     };
 
+    const handleCheckGenieACS = async (identifier: string) => {
+        Swal.fire({
+            title: 'Mencari di GenieACS...',
+            text: 'Mohon tunggu sebentar',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        try {
+            const res = await api.get(`/api/genie-acs/device?ip=${identifier}`);
+            Swal.close();
+            if (res.data && res.data.deviceId) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Modem Ditemukan!',
+                    text: `Modem ditemukan dengan SN: ${res.data.deviceSN}.`,
+                    confirmButtonText: 'Lihat Detail',
+                    confirmButtonColor: '#0ea5e9',
+                    showCancelButton: true,
+                    cancelButtonText: 'Tutup'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        navigate(`/admin/genie-acs?ip=${identifier}`);
+                    }
+                });
+            }
+        } catch (err: any) {
+            Swal.close();
+            Swal.fire({
+                icon: 'error',
+                title: 'Tidak Ditemukan',
+                text: 'Modem tidak ditemukan di GenieACS dengan identitas tersebut.',
+            });
+        }
+    };
+
     return (
         <div className="space-y-6">
             {/* Header Area */}
@@ -458,6 +498,18 @@ const ClientListScreen: React.FC = () => {
                                                     <span className="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded border border-slate-200 font-bold text-[10px] truncate max-w-[120px]">{client.pppoe_username}</span>
                                                 </div>
                                             ) : null}
+                                            {client.rx_power ? (
+                                                <div className="flex items-center gap-1 mt-1">
+                                                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider w-8">Sinyal:</span>
+                                                    <span className={`px-1.5 py-0.5 rounded font-bold text-[10px] border ${
+                                                        parseFloat(client.rx_power || '0') < -25 ? 'bg-rose-50 text-rose-700 border-rose-200' : 
+                                                        parseFloat(client.rx_power || '0') < -20 ? 'bg-amber-50 text-amber-700 border-amber-200' : 
+                                                        'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                                    }`}>
+                                                        {client.rx_power} dBm
+                                                    </span>
+                                                </div>
+                                            ) : null}
                                             {!client.onu_sn && !client.ip_address && !client.pppoe_username && (
                                                 <span className="text-[10px] text-slate-400 italic">Belum di-set</span>
                                             )}
@@ -547,6 +599,15 @@ const ClientListScreen: React.FC = () => {
                                                         >
                                                             <PencilLine size={16} />
                                                         </button>
+                                                        {(client.ip_address || client.onu_sn || client.pppoe_username) && (
+                                                            <button
+                                                                onClick={() => handleCheckGenieACS(client.ip_address || client.onu_sn || client.pppoe_username || '')}
+                                                                className="p-2 bg-slate-50 border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 text-slate-500 hover:text-indigo-600 rounded-xl transition active:scale-95"
+                                                                title="Cek Status Modem (GenieACS)"
+                                                            >
+                                                                <WifiHigh size={16} />
+                                                            </button>
+                                                        )}
                                                         <button
                                                             onClick={() => handleDelete(client.client_id, client.name)}
                                                             className="p-2 bg-slate-50 border border-slate-200 hover:border-rose-300 hover:bg-rose-50 text-slate-500 hover:text-rose-600 rounded-xl transition active:scale-95"

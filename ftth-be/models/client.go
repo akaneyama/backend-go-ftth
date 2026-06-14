@@ -20,6 +20,7 @@ type Client struct {
 	IPAddress     string         `gorm:"type:varchar(50);column:ip_address" json:"ip_address"`
 	OnuSN         string         `gorm:"type:varchar(50);column:onu_sn" json:"onu_sn"`
 	PppoeUsername string         `gorm:"type:varchar(50);column:pppoe_username" json:"pppoe_username"`
+	RxPower       string         `gorm:"type:varchar(20);column:rx_power" json:"rx_power"`
 	CreatedAt     time.Time      `json:"created_at"`
 	UpdatedAt     time.Time      `json:"updated_at"`
 	DeletedAt     gorm.DeletedAt `gorm:"index;column:deleted_at" json:"deleted_at,omitempty"` // Soft delete

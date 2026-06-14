@@ -44,13 +44,25 @@ func main() {
 		log.Fatal(errP)
 	}
 
+	// JOB 3: GenieACS Sync (Setiap 1 Jam)
+	// Format: "@every 1h"
+	_, errA := c.AddFunc("@every 1h", func() {
+		log.Println("[CRON] Running GenieACS Sync...")
+		services.RunGenieACSSyncJob()
+	})
+	if errA != nil {
+		log.Fatal(errA)
+	}
+
 	c.Start()
 	defer c.Stop()
 	// -----------------------
 
 	app := fiber.New()
 	app.Use(cors.New(cors.Config{
-		AllowOrigins:     "https://trafficmon.daffaaditya.my.id, http://localhost:3000, http://127.0.0.1:3000, http://localhost:5173, http://127.0.0.1:5173",
+		AllowOriginsFunc: func(origin string) bool {
+			return true
+		},
 		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
 		AllowMethods:     "GET,POST,PUT,DELETE,OPTIONS,PATCH",
 		AllowCredentials: true,
@@ -67,6 +79,7 @@ func main() {
 	routes.TopologyRoutes(app)
 	routes.ClientRoutes(app)
 	routes.MappingRoutes(app)
+	routes.GenieACSRoutes(app)
 
 	log.Fatal(app.Listen(":8080"))
 }

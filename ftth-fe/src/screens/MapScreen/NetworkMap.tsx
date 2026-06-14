@@ -514,8 +514,8 @@ const NetworkMap: React.FC = () => {
         try {
             const res = await api.get('/api/topology');
             if (res.data.status === 'success') {
-                setNodes(res.data.data.nodes);
-                setCables(res.data.data.cables);
+                setNodes(res.data.data.nodes || []);
+                setCables(res.data.data.cables || []);
             }
         } catch (err) { console.error(err); }
     };
@@ -1021,8 +1021,17 @@ const NetworkMap: React.FC = () => {
                     const match = text.match(/(-?\d+\.\d+)[,\s]+(-?\d+\.\d+)/);
                     if (match) {
                         e.preventDefault();
-                        latEl.value = match[1];
-                        lngEl.value = match[2];
+                        const val1 = parseFloat(match[1]);
+                        const val2 = parseFloat(match[2]);
+                        
+                        // Auto-swap if longitude was pasted first (e.g. 112.xx, -7.xx)
+                        if (Math.abs(val1) > 90 && Math.abs(val2) <= 90) {
+                            latEl.value = match[2];
+                            lngEl.value = match[1];
+                        } else {
+                            latEl.value = match[1];
+                            lngEl.value = match[2];
+                        }
                     }
                 });
 

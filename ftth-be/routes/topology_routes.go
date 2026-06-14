@@ -33,6 +33,7 @@ func TopologyRoutes(app *fiber.App) {
 
 	// BATCH ISOLIR TOOLS
 	api.Post("/tools/isolir/upload", middleware.JWTProtected(), middleware.RoleAdmin(), controllers.ToolIsolirUpload)
+	api.Post("/tools/isolir/process", middleware.JWTProtected(), middleware.RoleAdmin(), controllers.ToolIsolirProcess)
 	api.Get("/tools/isolir/status/:task_id", middleware.JWTProtected(), controllers.ToolIsolirStatus)
 	api.Get("/tools/isolir/template", middleware.JWTProtected(), controllers.ToolIsolirTemplate)
 

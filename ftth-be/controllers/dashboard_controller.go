@@ -32,7 +32,7 @@ func GetDashboardStats(c *fiber.Ctx) error {
 
 	// 1. Hitung Router
 	config.DB.Model(&models.Router{}).Where("is_deleted = 0").Count(&totalRouter)
-	config.DB.Model(&models.Router{}).Where("is_deleted = 0 AND router_status = ?", "ONLINE").Count(&activeRouter)
+	config.DB.Model(&models.Router{}).Where("is_deleted = 0 AND UPPER(router_status) IN (?, ?, ?)", "ONLINE", "ENABLE", "ACTIVE").Count(&activeRouter)
 	offlineRouter := totalRouter - activeRouter
 
 	// 2. Hitung Nodes berdasarkan tipe

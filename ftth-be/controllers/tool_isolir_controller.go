@@ -39,14 +39,20 @@ type IsolirTask struct {
 
 // Params untuk mendelegasikan router isolir (pilihan/manual)
 type IsolirRouterParams struct {
-	RouterMode     string `json:"router_mode"` // auto, selected, manual
-	RouterID       int    `json:"router_id"`
-	ManualHost     string `json:"manual_host"`
-	ManualPort     int    `json:"manual_port"`
-	ManualUsername string `json:"manual_username"`
-	ManualPassword string `json:"manual_password"`
-	ManualUseSSL   bool   `json:"manual_use_ssl"`
-	TargetType     string `json:"target_type"` // auto, hotspot, pppoe
+	RouterMode     string       `json:"router_mode"` // auto, selected, manual
+	RouterID       string       `json:"router_id"`
+	ManualHost     string       `json:"manual_host"`
+	ManualPort     int          `json:"manual_port"`
+	ManualUsername string       `json:"manual_username"`
+	ManualPassword string       `json:"manual_password"`
+	ManualUseSSL   bool         `json:"manual_use_ssl"`
+	TargetType     string       `json:"target_type"` // auto, hotspot, pppoe
+	PrefixRules    []PrefixRule `json:"prefix_rules"`
+}
+
+type PrefixRule struct {
+	Prefix   string `json:"prefix"`
+	RouterID string `json:"router_id"`
 }
 
 var (
@@ -54,7 +60,7 @@ var (
 	tasks   = make(map[string]*IsolirTask)
 )
 
-// ToolIsolirUpload memproses unggahan file Excel dan memulai isolir di background
+// ToolIsolirUpload memproses unggahan file Excel dan mengembalikan daftar target tanpa memulai isolir
 func ToolIsolirUpload(c *fiber.Ctx) error {
 	file, err := c.FormFile("excel_file")
 	if err != nil {
@@ -146,34 +152,47 @@ func ToolIsolirUpload(c *fiber.Ctx) error {
 		return utils.Failed(c, "Tidak ditemukan data target isolir (kolom PPOE) di file Excel.")
 	}
 
-	// Baca parameter mode router
-	routerMode := c.FormValue("router_mode", "auto")
-	routerIDStr := c.FormValue("router_id", "0")
-	var rID int
-	fmt.Sscanf(routerIDStr, "%d", &rID)
+	return utils.Success(c, "File berhasil diproses, pratinjau data siap", fiber.Map{
+		"targets": targetList,
+		"total":   len(targetList),
+	})
+}
 
-	manualHost := c.FormValue("manual_host", "")
-	manualPortStr := c.FormValue("manual_port", "8728")
-	var mPort int
-	fmt.Sscanf(manualPortStr, "%d", &mPort)
-	if mPort == 0 {
-		mPort = 8728
+// Request struct untuk memproses isolir
+type IsolirProcessReq struct {
+	Targets        []string     `json:"targets"`
+	RouterMode     string       `json:"router_mode"`
+	RouterID       string       `json:"router_id"`
+	ManualHost     string       `json:"manual_host"`
+	ManualPort     int          `json:"manual_port"`
+	ManualUsername string       `json:"manual_username"`
+	ManualPassword string       `json:"manual_password"`
+	ManualUseSSL   bool         `json:"manual_use_ssl"`
+	TargetType     string       `json:"target_type"`
+	PrefixRules    []PrefixRule `json:"prefix_rules"`
+}
+
+// ToolIsolirProcess memulai isolir berdasarkan array targets yang dikirim
+func ToolIsolirProcess(c *fiber.Ctx) error {
+	var req IsolirProcessReq
+	if err := c.BodyParser(&req); err != nil {
+		return utils.Failed(c, "Format request tidak valid.")
 	}
 
-	manualUser := c.FormValue("manual_username", "")
-	manualPass := c.FormValue("manual_password", "")
-	manualSSL := c.FormValue("manual_use_ssl", "false") == "true"
-	targetType := c.FormValue("target_type", "auto")
+	if len(req.Targets) == 0 {
+		return utils.Failed(c, "Daftar target kosong.")
+	}
 
 	params := IsolirRouterParams{
-		RouterMode:     routerMode,
-		RouterID:       rID,
-		ManualHost:     manualHost,
-		ManualPort:     mPort,
-		ManualUsername: manualUser,
-		ManualPassword: manualPass,
-		ManualUseSSL:   manualSSL,
-		TargetType:     targetType,
+		RouterMode:     req.RouterMode,
+		RouterID:       req.RouterID,
+		ManualHost:     req.ManualHost,
+		ManualPort:     req.ManualPort,
+		ManualUsername: req.ManualUsername,
+		ManualPassword: req.ManualPassword,
+		ManualUseSSL:   req.ManualUseSSL,
+		TargetType:     req.TargetType,
+		PrefixRules:    req.PrefixRules,
 	}
 
 	// Buat Task baru
@@ -182,7 +201,7 @@ func ToolIsolirUpload(c *fiber.Ctx) error {
 		TaskID:    taskID,
 		Status:    "pending",
 		Progress:  0,
-		Total:     len(targetList),
+		Total:     len(req.Targets),
 		Results:   make([]IsolirTaskResult, 0),
 		CreatedAt: time.Now(),
 	}
@@ -191,12 +210,12 @@ func ToolIsolirUpload(c *fiber.Ctx) error {
 	tasks[taskID] = task
 	tasksMu.Unlock()
 
-	// Jalankan pemrosesan di background goroutine dengan parameters
-	go runIsolirTask(taskID, targetList, params)
+	// Jalankan pemrosesan di background goroutine
+	go runIsolirTask(taskID, req.Targets, params)
 
 	return utils.Success(c, "Tugas isolir berhasil dibuat", fiber.Map{
 		"task_id": taskID,
-		"total":   len(targetList),
+		"total":   len(req.Targets),
 	})
 }
 
@@ -253,15 +272,25 @@ func runIsolirTask(taskID string, targets []string, params IsolirRouterParams) {
 			tasksMu.Unlock()
 			return
 		}
+		decryptedPass, errDec := utils.DecryptAES(singleRouter.RouterPassword)
+		if errDec == nil {
+			singleRouter.RouterPassword = decryptedPass
+		}
 		routers = append(routers, singleRouter)
 	} else {
-		// default: auto (all active routers in DB)
+		// default: auto or prefix (all active routers in DB)
 		if err := config.DB.Where("is_deleted = 0").Find(&routers).Error; err != nil {
 			log.Printf("[ISOLIR TASK] Gagal mengambil daftar router: %v", err)
 			tasksMu.Lock()
 			task.Status = "failed"
 			tasksMu.Unlock()
 			return
+		}
+		for i := range routers {
+			decryptedPass, errDec := utils.DecryptAES(routers[i].RouterPassword)
+			if errDec == nil {
+				routers[i].RouterPassword = decryptedPass
+			}
 		}
 	}
 
@@ -282,10 +311,7 @@ func runIsolirTask(taskID string, targets []string, params IsolirRouterParams) {
 			tlsConfig := &tls.Config{InsecureSkipVerify: true}
 			client, err = routeros.DialTLS(addr, r.RouterUsername, r.RouterPassword, tlsConfig)
 		} else {
-			client, err = routeros.Dial(addr, r.RouterUsername, r.RouterUsername)
-			if err != nil {
-				client, err = routeros.Dial(addr, r.RouterUsername, r.RouterPassword)
-			}
+			client, err = routeros.Dial(addr, r.RouterUsername, r.RouterPassword)
 		}
 
 		if err != nil {
@@ -336,8 +362,34 @@ func runIsolirTask(taskID string, targets []string, params IsolirRouterParams) {
 
 		foundInRouter := false
 
-		// Cari di seluruh koneksi router aktif
-		for _, conn := range activeConnections {
+		// Tentukan router koneksi yang akan diproses
+		var connectionsToSearch []RouterConn
+		if params.RouterMode == "prefix" && len(params.PrefixRules) > 0 {
+			matched := false
+			for _, rule := range params.PrefixRules {
+				// Cek apakah target mengandung prefix.
+				// Gunakan HasPrefix, dan bersihkan target dari "static@" yang sudah dilakukan di atas.
+				if strings.HasPrefix(target, rule.Prefix) {
+					matched = true
+					for _, conn := range activeConnections {
+						if conn.Router.RouterID.String() == rule.RouterID {
+							connectionsToSearch = append(connectionsToSearch, conn)
+							break
+						}
+					}
+					break
+				}
+			}
+			if !matched {
+				// Fallback: Jika tidak cocok dengan prefix apapun, cari di semua router
+				connectionsToSearch = activeConnections
+			}
+		} else {
+			connectionsToSearch = activeConnections
+		}
+
+		// Cari di koneksi router yang sesuai
+		for _, conn := range connectionsToSearch {
 			client := conn.Client
 			router := conn.Router
 
