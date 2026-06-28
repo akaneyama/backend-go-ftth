@@ -43,6 +43,16 @@ const DashboardHome: React.FC = () => {
     const [loading, setLoading] = useState<boolean>(true);
     const [currentDate, setCurrentDate] = useState<string>('');
 
+    // Get User Role
+    const token = localStorage.getItem('jwt_token') || '';
+    let userRole = 1;
+    try {
+        if (token) {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            userRole = Number(payload.role) || 1;
+        }
+    } catch (e) {}
+
     useEffect(() => {
         // Set formatted local date
         const options: Intl.DateTimeFormatOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
@@ -226,22 +236,24 @@ const DashboardHome: React.FC = () => {
                             </div>
 
                             {/* Isolir Batch Shortcut */}
-                            <div 
-                                onClick={() => navigate('/admin/isolir')}
-                                className="group relative overflow-hidden bg-slate-50 hover:bg-rose-50/50 border border-slate-200 hover:border-rose-300 p-5 rounded-2xl cursor-pointer transition-all duration-300"
-                            >
-                                <div className="absolute right-0 bottom-0 translate-x-4 translate-y-4 text-rose-500/5 group-hover:scale-110 transition-transform duration-300">
-                                    <Prohibit size={120} weight="fill" />
+                            {userRole === 1 && (
+                                <div 
+                                    onClick={() => navigate('/admin/isolir')}
+                                    className="group relative overflow-hidden bg-slate-50 hover:bg-rose-50/50 border border-slate-200 hover:border-rose-300 p-5 rounded-2xl cursor-pointer transition-all duration-300"
+                                >
+                                    <div className="absolute right-0 bottom-0 translate-x-4 translate-y-4 text-rose-500/5 group-hover:scale-110 transition-transform duration-300">
+                                        <Prohibit size={120} weight="fill" />
+                                    </div>
+                                    <div className="p-3 bg-rose-100 text-rose-600 rounded-xl w-fit mb-4">
+                                        <Prohibit size={22} weight="bold" />
+                                    </div>
+                                    <h3 className="font-bold text-slate-800 group-hover:text-rose-600 transition-colors">Isolir Batch Excel</h3>
+                                    <p className="text-slate-400 text-xs mt-1 leading-relaxed">Unggah daftar pelanggan berformat Excel, jalankan isolir massal otomatis & background.</p>
+                                    <div className="mt-4 flex items-center gap-1.5 text-xs text-rose-600 font-bold opacity-0 group-hover:opacity-100 transition-opacity">
+                                        Buka Tools <ArrowRight size={14} />
+                                    </div>
                                 </div>
-                                <div className="p-3 bg-rose-100 text-rose-600 rounded-xl w-fit mb-4">
-                                    <Prohibit size={22} weight="bold" />
-                                </div>
-                                <h3 className="font-bold text-slate-800 group-hover:text-rose-600 transition-colors">Isolir Batch Excel</h3>
-                                <p className="text-slate-400 text-xs mt-1 leading-relaxed">Unggah daftar pelanggan berformat Excel, jalankan isolir massal otomatis & background.</p>
-                                <div className="mt-4 flex items-center gap-1.5 text-xs text-rose-600 font-bold opacity-0 group-hover:opacity-100 transition-opacity">
-                                    Buka Tools <ArrowRight size={14} />
-                                </div>
-                            </div>
+                            )}
 
                             {/* Topology Data Table */}
                             <div 

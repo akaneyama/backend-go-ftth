@@ -33,34 +33,35 @@ const navigationGroups = [
     {
         title: 'Utama',
         links: [
-            { name: 'Dashboard', href: '/admin', icon: SquaresFour, end: true },
+            { name: 'Dashboard', href: '/admin', icon: SquaresFour, end: true, adminOnly: false },
         ]
     },
     {
         title: 'Layanan & Pelanggan',
         links: [
-            { name: 'Pelanggan', href: '/admin/clients', icon: Users, end: false },
-            { name: 'Paket Internet', href: '/admin/packages', icon: Package, end: false },
-            { name: 'Isolir Batch', href: '/admin/isolir', icon: Prohibit, end: false },
-            { name: 'Pengguna Sistem', href: '/admin/users', icon: User, end: false },
+            { name: 'Pelanggan', href: '/admin/clients', icon: Users, end: false, adminOnly: false },
+            { name: 'Paket Internet', href: '/admin/packages', icon: Package, end: false, adminOnly: true },
+            { name: 'Isolir Batch', href: '/admin/isolir', icon: Prohibit, end: false, adminOnly: true },
+            { name: 'Pengguna Sistem', href: '/admin/users', icon: User, end: false, adminOnly: true },
         ]
     },
     {
         title: 'Infrastruktur Jaringan',
         links: [
-            { name: 'Router Mikrotik', href: '/admin/routers', icon: RouterIcon, end: false },
-            { name: 'Interface Jaringan', href: '/admin/interfaces', icon: Network, end: false },
-            { name: 'ODP / Distribusi', href: '/admin/odp', icon: Broadcast, end: false },
-            { name: 'Manajemen Modem', href: '/admin/genie-acs', icon: WifiHigh, end: false },
+            { name: 'Router Mikrotik', href: '/admin/routers', icon: RouterIcon, end: false, adminOnly: false },
+            { name: 'Interface Jaringan', href: '/admin/interfaces', icon: Network, end: false, adminOnly: false },
+            { name: 'IP Pool', href: '/admin/ippool', icon: Network, end: false, adminOnly: true },
+            { name: 'ODP / Distribusi', href: '/admin/odp', icon: Broadcast, end: false, adminOnly: false },
+            { name: 'Manajemen Modem', href: '/admin/genie-acs', icon: WifiHigh, end: false, adminOnly: false },
         ]
     },
     {
         title: 'Monitoring & Topologi',
         links: [
-            { name: 'Traffic Monitoring', href: '/admin/traffic-monitoring', icon: Graph, end: false },
-            { name: 'Visualisasi Topologi', href: '/admin/network-map', icon: LineSegmentIcon, end: false },
-            { name: 'Data Topologi', href: '/admin/topology-table', icon: Table, end: false },
-            { name: 'Mapping Jaringan', href: '/admin/network-mapping', icon: ShareNetwork, end: false },
+            { name: 'Traffic Monitoring', href: '/admin/traffic-monitoring', icon: Graph, end: false, adminOnly: false },
+            { name: 'Visualisasi Topologi', href: '/admin/network-map', icon: LineSegmentIcon, end: false, adminOnly: false },
+            { name: 'Data Topologi', href: '/admin/topology-table', icon: Table, end: false, adminOnly: false },
+            { name: 'Mapping Jaringan', href: '/admin/network-mapping', icon: ShareNetwork, end: false, adminOnly: false },
         ]
     }
 ];
@@ -115,7 +116,7 @@ const DashboardLayout: React.FC = () => {
                     <div className="fixed inset-0 flex">
                         <Transition.Child as={Fragment} enter="transition ease-in-out duration-300 transform" enterFrom="-translate-x-full" enterTo="translate-x-0" leave="transition ease-in-out duration-300 transform" leaveFrom="translate-x-0" leaveTo="-translate-x-full">
                             <div className="relative mr-16 flex w-full max-w-xs flex-1">
-                                <SidebarContent onLogout={handleLogout} onClose={() => setSidebarOpen(false)} />
+                                <SidebarContent onLogout={handleLogout} onClose={() => setSidebarOpen(false)} userRole={userData?.role} />
                                 <div className="absolute left-full top-0 flex w-16 justify-center pt-5">
                                     <button type="button" className="-m-2.5 p-2.5" onClick={() => setSidebarOpen(false)}>
                                         <X className="h-6 w-6 text-white" aria-hidden="true" />
@@ -129,12 +130,12 @@ const DashboardLayout: React.FC = () => {
 
             {/* --- DESKTOP SIDEBAR --- */}
             <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
-                <SidebarContent onLogout={handleLogout} />
+                <SidebarContent onLogout={handleLogout} userRole={userData?.role} />
             </div>
 
             {/* --- MAIN CONTENT WRAPPER --- */}
-            {/* PERBAIKAN SCROLL: Tambahkan h-full agar wrapper mengisi tinggi layar */}
-            <div className="flex flex-1 flex-col lg:pl-72 h-full">
+            {/* PERBAIKAN SCROLL: Tambahkan h-full agar wrapper mengisi tinggi layar, dan min-w-0 agar tidak overstretch */}
+            <div className="flex flex-1 flex-col lg:pl-72 h-full min-w-0">
 
                 {/* Header (Sticky) */}
                 <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-slate-200 bg-white px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
@@ -173,9 +174,10 @@ const DashboardLayout: React.FC = () => {
 
                 {/* --- PERBAIKAN UTAMA SCROLL --- */}
                 {/* overflow-y-auto: Mengaktifkan scrollbar vertikal pada konten utama */}
-                <main className="flex-1 overflow-y-auto bg-slate-50">
+                {/* overflow-x-hidden mencegah horizontal scroll tingkat layout */}
+                <main className="flex-1 overflow-y-auto overflow-x-hidden bg-slate-50 relative">
                     {/* min-h-full memastikan background mengisi layar walau konten sedikit */}
-                    <div className="px-4 py-10 sm:px-6 lg:px-8 min-h-full">
+                    <div className="px-4 py-10 sm:px-6 lg:px-8 min-h-full max-w-full">
                         <Outlet />
                     </div>
                 </main>
@@ -184,7 +186,7 @@ const DashboardLayout: React.FC = () => {
     );
 };
 
-const SidebarContent: React.FC<{ onLogout: () => void; onClose?: () => void }> = ({ onLogout, onClose }) => {
+const SidebarContent: React.FC<{ onLogout: () => void; onClose?: () => void; userRole?: number }> = ({ onLogout, onClose, userRole }) => {
     return (
         <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-slate-800 bg-slate-950 px-6 pb-6">
             <div className="flex h-20 shrink-0 items-center justify-center border-b border-slate-900 mb-2">
@@ -195,38 +197,48 @@ const SidebarContent: React.FC<{ onLogout: () => void; onClose?: () => void }> =
 
             <nav className="flex flex-1 flex-col">
                 <ul role="list" className="flex flex-1 flex-col gap-y-6">
-                    {navigationGroups.map((group) => (
-                        <li key={group.title}>
-                            <div className="text-[10px] font-black leading-6 text-slate-500 uppercase tracking-widest mb-3">{group.title}</div>
-                            <ul role="list" className="-mx-2 space-y-1.5">
-                                {group.links.map((item) => (
-                                    <li key={item.name}>
-                                        <NavLink
-                                            to={item.href}
-                                            end={item.end}
-                                            onClick={onClose}
-                                            className={({ isActive }) => `group flex items-center gap-x-3 rounded-xl p-2.5 text-xs font-bold transition-all duration-300 border ${isActive
-                                                ? 'bg-gradient-to-r from-sky-500/10 to-indigo-500/10 text-sky-400 border-sky-500/20 shadow-[0_0_12px_rgba(14,165,233,0.08)]'
-                                                : 'text-slate-400 border-transparent hover:text-white hover:bg-white/5'
-                                                }`}
-                                        >
-                                            {({ isActive }) => (
-                                                <>
-                                                    <item.icon
-                                                        className={`h-5 w-5 shrink-0 transition-colors duration-300 ${isActive ? 'text-sky-400' : 'text-slate-500 group-hover:text-white'
-                                                            }`}
-                                                        aria-hidden="true"
-                                                        weight={isActive ? "fill" : "regular"}
-                                                    />
-                                                    {item.name}
-                                                </>
-                                            )}
-                                        </NavLink>
-                                    </li>
-                                ))}
-                            </ul>
-                        </li>
-                    ))}
+                    {navigationGroups.map((group) => {
+                        // Filter links based on role
+                        const visibleLinks = group.links.filter(link => {
+                            if (link.adminOnly && userRole !== 1) return false;
+                            return true;
+                        });
+
+                        if (visibleLinks.length === 0) return null;
+
+                        return (
+                            <li key={group.title}>
+                                <div className="text-[10px] font-black leading-6 text-slate-500 uppercase tracking-widest mb-3">{group.title}</div>
+                                <ul role="list" className="-mx-2 space-y-1.5">
+                                    {visibleLinks.map((item) => (
+                                        <li key={item.name}>
+                                            <NavLink
+                                                to={item.href}
+                                                end={item.end}
+                                                onClick={onClose}
+                                                className={({ isActive }) => `group flex items-center gap-x-3 rounded-xl p-2.5 text-xs font-bold transition-all duration-300 border ${isActive
+                                                    ? 'bg-gradient-to-r from-sky-500/10 to-indigo-500/10 text-sky-400 border-sky-500/20 shadow-[0_0_12px_rgba(14,165,233,0.08)]'
+                                                    : 'text-slate-400 border-transparent hover:text-white hover:bg-white/5'
+                                                    }`}
+                                            >
+                                                {({ isActive }) => (
+                                                    <>
+                                                        <item.icon
+                                                            className={`h-5 w-5 shrink-0 transition-colors duration-300 ${isActive ? 'text-sky-400' : 'text-slate-500 group-hover:text-white'
+                                                                }`}
+                                                            aria-hidden="true"
+                                                            weight={isActive ? "fill" : "regular"}
+                                                        />
+                                                        {item.name}
+                                                    </>
+                                                )}
+                                            </NavLink>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </li>
+                        );
+                    })}
 
                     {/* Logout Button */}
                     <li className="mt-auto">

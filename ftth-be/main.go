@@ -80,6 +80,7 @@ func main() {
 	routes.ClientRoutes(app)
 	routes.MappingRoutes(app)
 	routes.GenieACSRoutes(app)
+	routes.IPPoolRoutes(app)
 
 	log.Fatal(app.Listen(":8080"))
 }

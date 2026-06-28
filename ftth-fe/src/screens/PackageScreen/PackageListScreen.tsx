@@ -12,6 +12,7 @@ import {
     WifiHigh
 } from "@phosphor-icons/react";
 import Swal from 'sweetalert2';
+import PaginationControl from '../../components/ui/PaginationControl';
 
 interface PackageData {
     package_id: number;
@@ -26,6 +27,20 @@ const PackageListScreen: React.FC = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const navigate = useNavigate();
+
+    // Pagination State
+    const [page, setPage] = useState<number>(1);
+    const [limit, setLimit] = useState<number>(10);
+
+    // Get User Role
+    const token = localStorage.getItem('jwt_token') || '';
+    let userRole = 1;
+    try {
+        if (token) {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            userRole = Number(payload.role) || 1;
+        }
+    } catch (e) {}
 
     const fetchPackages = async () => {
         setIsLoading(true);
@@ -76,6 +91,16 @@ const PackageListScreen: React.FC = () => {
         pkg.package_name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    // Client-side Pagination Logic
+    const totalItems = filteredPackages.length;
+    const totalPages = Math.ceil(totalItems / limit) || 1;
+    const paginatedPackages = filteredPackages.slice((page - 1) * limit, page * limit);
+
+    // Reset ke halaman 1 jika filter berubah
+    useEffect(() => {
+        setPage(1);
+    }, [searchTerm]);
+
     return (
         <div className="space-y-6">
             {/* Header Area */}
@@ -88,12 +113,14 @@ const PackageListScreen: React.FC = () => {
                     <p className="text-xs text-slate-300 mt-1">Kelola harga layanan bulanan, limitasi bandwidth unggah (upload) & unduh (download) pelanggan secara modular.</p>
                 </div>
                 <div>
-                    <button 
-                        onClick={() => navigate('/admin/packages/add')}
-                        className="bg-sky-500 hover:bg-sky-600 text-white px-5 py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 active:scale-95 shadow-md shadow-sky-500/25 transition-all duration-300"
-                    >
-                        <Plus size={16} weight="bold" /> Tambah Paket Baru
-                    </button>
+                    {userRole === 1 && (
+                        <button 
+                            onClick={() => navigate('/admin/packages/add')}
+                            className="bg-sky-500 hover:bg-sky-600 text-white px-5 py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 active:scale-95 shadow-md shadow-sky-500/25 transition-all duration-300"
+                        >
+                            <Plus size={16} weight="bold" /> Tambah Paket Baru
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -129,7 +156,7 @@ const PackageListScreen: React.FC = () => {
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredPackages.map((pkg) => (
+                    {paginatedPackages.map((pkg) => (
                         <div key={pkg.package_id} className="bg-white rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col group">
                             {/* Card Header */}
                             <div className="p-6 bg-gradient-to-br from-slate-50/50 to-white border-b border-slate-50">
@@ -172,24 +199,38 @@ const PackageListScreen: React.FC = () => {
                             </div>
 
                             {/* Card Footer (Actions) */}
-                            <div className="p-4 border-t border-slate-50 bg-slate-50/30 flex gap-3">
-                                <button 
-                                    onClick={() => navigate(`/admin/packages/edit/${pkg.package_id}`)}
-                                    className="flex-1 py-2 flex items-center justify-center gap-1.5 text-xs font-bold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-sky-50 hover:text-sky-700 hover:border-sky-200 active:scale-95 transition-all duration-300"
-                                >
-                                    <PencilSimple weight="bold" size={14}/> Edit Paket
-                                </button>
-                                <button 
-                                    onClick={() => handleDelete(pkg.package_id)}
-                                    className="py-2 px-3 flex items-center justify-center text-red-500 bg-white border border-slate-200 rounded-xl hover:bg-red-50 hover:border-red-200 active:scale-95 transition-all duration-300"
-                                    title="Hapus Paket"
-                                >
-                                    <Trash weight="bold" size={15}/>
-                                </button>
-                            </div>
+                            {userRole === 1 && (
+                                <div className="p-4 border-t border-slate-50 bg-slate-50/30 flex gap-3">
+                                    <button 
+                                        onClick={() => navigate(`/admin/packages/edit/${pkg.package_id}`)}
+                                        className="flex-1 py-2 flex items-center justify-center gap-1.5 text-xs font-bold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-sky-50 hover:text-sky-700 hover:border-sky-200 active:scale-95 transition-all duration-300"
+                                    >
+                                        <PencilSimple weight="bold" size={14}/> Edit Paket
+                                    </button>
+                                    <button 
+                                        onClick={() => handleDelete(pkg.package_id)}
+                                        className="py-2 px-3 flex items-center justify-center text-red-500 bg-white border border-slate-200 rounded-xl hover:bg-red-50 hover:border-red-200 active:scale-95 transition-all duration-300"
+                                        title="Hapus Paket"
+                                    >
+                                        <Trash weight="bold" size={15}/>
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     ))}
                 </div>
+            )}
+
+            {/* Pagination UI */}
+            {totalItems > limit && (
+                <PaginationControl
+                    currentPage={page}
+                    totalPages={totalPages}
+                    totalItems={totalItems}
+                    itemsPerPage={limit}
+                    onPageChange={setPage}
+                    onLimitChange={setLimit}
+                />
             )}
         </div>
     );

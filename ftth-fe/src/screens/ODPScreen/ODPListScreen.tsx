@@ -15,6 +15,7 @@ import {
     ArrowSquareOut,
     PlugsConnected,
 } from '@phosphor-icons/react';
+import PaginationControl from '../../components/ui/PaginationControl';
 
 interface ODPNode {
     node_id: number;
@@ -38,7 +39,21 @@ const ODPListScreen: React.FC = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [capacityFilter, setCapacityFilter] = useState<'all' | 'available' | 'full'>('all');
 
+    // Pagination State
+    const [page, setPage] = useState<number>(1);
+    const [limit, setLimit] = useState<number>(10);
+
     const navigate = useNavigate();
+
+    // Get User Role
+    const token = localStorage.getItem('jwt_token') || '';
+    let userRole = 1;
+    try {
+        if (token) {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            userRole = Number(payload.role) || 1;
+        }
+    } catch (e) {}
 
     const loadODP = async () => {
         setLoading(true);
@@ -80,7 +95,13 @@ const ODPListScreen: React.FC = () => {
             );
         }
         setFiltered(result);
+        setPage(1); // Reset to page 1 on filter/search change
     }, [nodes, searchQuery, capacityFilter]);
+
+    // Client-side Pagination Logic
+    const totalItems = filtered.length;
+    const totalPages = Math.ceil(totalItems / limit) || 1;
+    const paginatedNodes = filtered.slice((page - 1) * limit, page * limit);
 
     const handleDelete = async (nodeId: number, name: string) => {
         const result = await Swal.fire({
@@ -130,12 +151,14 @@ const ODPListScreen: React.FC = () => {
                     </h2>
                     <p className="text-xs text-sky-200 mt-1">Pantau kapasitas port, lokasi, dan status semua node ODP di jaringan FTTH Anda.</p>
                 </div>
-                <button
-                    onClick={() => navigate('/admin/network-map')}
-                    className="bg-white/10 hover:bg-white/20 border border-white/20 px-5 py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition active:scale-95 shrink-0"
-                >
-                    <Plus size={16} weight="bold" /> Tambah ODP di Peta
-                </button>
+                {userRole === 1 && (
+                    <button
+                        onClick={() => navigate('/admin/network-map')}
+                        className="bg-white/10 hover:bg-white/20 border border-white/20 px-5 py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition active:scale-95 shrink-0"
+                    >
+                        <Plus size={16} weight="bold" /> Tambah ODP di Peta
+                    </button>
+                )}
             </div>
 
             {/* Stats Cards */}
@@ -181,7 +204,7 @@ const ODPListScreen: React.FC = () => {
                         className="w-full pl-10 pr-4 py-2.5 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 font-semibold text-slate-700 transition"
                     />
                 </div>
-                <div className="flex gap-1 bg-slate-100 p-1 rounded-xl">
+                <div className="flex flex-wrap gap-1 bg-slate-100 p-1 rounded-xl">
                     {[
                         { key: 'all', label: 'Semua' },
                         { key: 'available', label: '✅ Tersedia' },
@@ -224,10 +247,11 @@ const ODPListScreen: React.FC = () => {
                         </button>
                     </div>
                 ) : (
-                    <div className="overflow-x-auto">
+                    <>
+                    <div className="hidden lg:block overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                             <thead>
-                                <tr className="border-b border-slate-200 bg-slate-50 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                                <tr className="border-b border-slate-200 bg-slate-50 text-[10px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
                                     <th className="py-4 px-6">Nama ODP</th>
                                     <th className="py-4 px-6">Kapasitas Port</th>
                                     <th className="py-4 px-6">Status</th>
@@ -236,8 +260,8 @@ const ODPListScreen: React.FC = () => {
                                     <th className="py-4 px-6 text-center">Aksi</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100 text-xs text-slate-700 font-medium">
-                                {filtered.map(node => {
+                            <tbody className="divide-y divide-slate-100 text-xs text-slate-700 font-medium whitespace-nowrap">
+                                {paginatedNodes.map(node => {
                                     const cap = getCapacityInfo(node);
                                     const barColor = {
                                         emerald: 'bg-emerald-500',
@@ -333,13 +357,15 @@ const ODPListScreen: React.FC = () => {
                                                     >
                                                         <MapPin size={15} weight="fill" />
                                                     </button>
-                                                    <button
-                                                        onClick={() => handleDelete(node.node_id, node.name)}
-                                                        title="Hapus ODP"
-                                                        className="p-2 bg-slate-50 border border-slate-200 hover:border-red-300 hover:bg-red-50 text-slate-500 hover:text-red-600 rounded-xl transition active:scale-95"
-                                                    >
-                                                        <Trash size={15} />
-                                                    </button>
+                                                    {userRole === 1 && (
+                                                        <button
+                                                            onClick={() => handleDelete(node.node_id, node.name)}
+                                                            title="Hapus ODP"
+                                                            className="p-2 bg-slate-50 border border-slate-200 hover:border-red-300 hover:bg-red-50 text-slate-500 hover:text-red-600 rounded-xl transition active:scale-95"
+                                                        >
+                                                            <Trash size={15} />
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>
@@ -347,16 +373,133 @@ const ODPListScreen: React.FC = () => {
                                 })}
                             </tbody>
                         </table>
-
-                        {/* Footer summary */}
-                        <div className="px-6 py-3 bg-slate-50 border-t border-slate-100 text-[10px] text-slate-400 font-semibold flex justify-between">
-                            <span>Menampilkan {filtered.length} dari {nodes.length} ODP</span>
-                            <span>
-                                Total kapasitas: {nodes.reduce((s, n) => s + (n.odp_detail?.total_ports || 0), 0)} port •
-                                Terpakai: {nodes.reduce((s, n) => s + (n.odp_detail?.used_ports || 0), 0)} port
-                            </span>
-                        </div>
                     </div>
+
+                    {/* --- MOBILE CARD VIEW --- */}
+                    <div className="lg:hidden divide-y divide-slate-100">
+                        {paginatedNodes.map(node => {
+                            const cap = getCapacityInfo(node);
+                            const barColor = {
+                                emerald: 'bg-emerald-500',
+                                amber: 'bg-amber-400',
+                                red: 'bg-red-500',
+                                blue: 'bg-blue-400',
+                            }[cap.color] || 'bg-slate-300';
+                            const badgeColor = {
+                                emerald: 'bg-emerald-50 text-emerald-700 border-emerald-100',
+                                amber: 'bg-amber-50 text-amber-700 border-amber-100',
+                                red: 'bg-red-50 text-red-700 border-red-100',
+                                blue: 'bg-blue-50 text-blue-700 border-blue-100',
+                            }[cap.color] || 'bg-slate-50 text-slate-600 border-slate-200';
+
+                            return (
+                                <div key={node.node_id} className="p-4 space-y-3 hover:bg-slate-50/70 transition-colors">
+                                    {/* Header: Nama & Status */}
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div className="flex items-center gap-3">
+                                            <div className="h-10 w-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
+                                                <Broadcast size={20} className="text-blue-600" weight="fill" />
+                                            </div>
+                                            <div>
+                                                <span className="font-bold text-slate-800 text-sm block">{node.name}</span>
+                                                <span className="text-[10px] text-slate-400">ID Node: #{node.node_id}</span>
+                                            </div>
+                                        </div>
+                                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[10px] font-bold ${badgeColor}`}>
+                                            {cap.color === 'red' && <Warning size={11} weight="fill" />}
+                                            {cap.color === 'emerald' && <CheckCircle size={11} weight="fill" />}
+                                            {cap.color === 'amber' && <Warning size={11} weight="fill" />}
+                                            {cap.label}
+                                        </span>
+                                    </div>
+
+                                    {/* Deskripsi */}
+                                    {node.description && (
+                                        <p className="text-slate-600 text-xs bg-slate-50 p-2 rounded-lg border border-slate-100">
+                                            {node.description}
+                                        </p>
+                                    )}
+
+                                    {/* Kapasitas */}
+                                    <div className="space-y-1.5 py-1">
+                                        <div className="flex items-center justify-between text-[11px]">
+                                            <span className="font-bold text-slate-700">
+                                                <PlugsConnected size={12} className="inline mr-1 text-slate-400" />
+                                                {cap.used} / {cap.total} port terpakai
+                                            </span>
+                                            <span className="font-black text-slate-500">{cap.percent}%</span>
+                                        </div>
+                                        <div className="w-full bg-slate-100 rounded-full h-1.5">
+                                            <div
+                                                className={`h-1.5 rounded-full transition-all ${barColor}`}
+                                                style={{ width: `${Math.min(cap.percent, 100)}%` }}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Aksi & Koordinat */}
+                                    <div className="flex items-center justify-between pt-2 border-t border-slate-50">
+                                        {node.lat && node.lng ? (
+                                            <a
+                                                href={`https://www.google.com/maps/search/?api=1&query=${node.lat},${node.lng}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 px-2 py-1.5 rounded-lg transition font-bold text-[11px]"
+                                            >
+                                                <MapPin size={13} weight="fill" className="text-indigo-400" />
+                                                Cek Peta
+                                            </a>
+                                        ) : (
+                                            <span className="text-slate-400 italic text-[10px] px-2 py-1.5">Belum dipetakan</span>
+                                        )}
+
+                                        <div className="flex items-center gap-1.5">
+                                            <button
+                                                onClick={() => navigate(`/admin/network-map`)}
+                                                title="Lihat di Peta"
+                                                className="p-2 bg-slate-50 border border-slate-200 hover:border-sky-300 hover:bg-sky-50 text-slate-500 hover:text-sky-600 rounded-lg transition active:scale-95"
+                                            >
+                                                <MapPin size={15} weight="fill" />
+                                            </button>
+                                            {userRole === 1 && (
+                                                <button
+                                                    onClick={() => handleDelete(node.node_id, node.name)}
+                                                    title="Hapus ODP"
+                                                    className="p-2 bg-slate-50 border border-slate-200 hover:border-red-300 hover:bg-red-50 text-slate-500 hover:text-red-600 rounded-lg transition active:scale-95"
+                                                >
+                                                    <Trash size={15} />
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    {/* Footer summary */}
+                    <div className="px-6 py-3 bg-slate-50 border-t border-slate-100 text-[10px] text-slate-400 font-semibold flex justify-between">
+                        <span>Menampilkan {totalItems} ODP</span>
+                        <span>
+                            Total kapasitas: {nodes.reduce((s, n) => s + (n.odp_detail?.total_ports || 0), 0)} port •
+                            Terpakai: {nodes.reduce((s, n) => s + (n.odp_detail?.used_ports || 0), 0)} port
+                        </span>
+                    </div>
+
+                    {/* Pagination UI */}
+                    {totalItems > limit && (
+                        <div className="border-t border-slate-100 rounded-b-2xl overflow-hidden">
+                            <PaginationControl
+                                currentPage={page}
+                                totalPages={totalPages}
+                                totalItems={totalItems}
+                                itemsPerPage={limit}
+                                onPageChange={setPage}
+                                onLimitChange={setLimit}
+                            />
+                        </div>
+                    )}
+                    </>
                 )}
             </div>
         </div>

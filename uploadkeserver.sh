@@ -49,7 +49,7 @@ LOCAL_DIR_FRONTEND="/media/daffa/CODE/backend-go-ftth/ftth-fe"
 
 # Konfigurasi Direktori Server (Remote)
 REMOTE_DIR_BACKEND="/home/akane/ftthapp/backend"
-REMOTE_DIR_FRONTEND="/home/akane/ftthapp/frontend"
+REMOTE_DIR_FRONTEND="/var/www/html/dist"
 REMOTE_TEMP_FRONTEND="/home/$SERVER_USER/frontend_ftth"
 # ==================================================
 
@@ -107,7 +107,8 @@ if [ "$DEPLOY_FRONTEND" = true ]; then
         sudo rm -rf $REMOTE_DIR_FRONTEND/* &&
         sudo cp -r $REMOTE_TEMP_FRONTEND/* $REMOTE_DIR_FRONTEND/ &&
         sudo chown -R www-data:www-data $REMOTE_DIR_FRONTEND &&
-        sudo chmod -R 755 $REMOTE_DIR_FRONTEND
+        sudo chmod -R 755 $REMOTE_DIR_FRONTEND &&
+        sudo systemctl reload nginx
     "
     
     echo -e "${GREEN}✔ DEPLOY FRONTEND BERHASIL!${NC}"

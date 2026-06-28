@@ -271,10 +271,10 @@ const TopologyTableScreen: React.FC = () => {
                     </div>
 
                     {/* Table */}
-                    <div className="overflow-x-auto">
+                    <div className="hidden lg:block overflow-x-auto">
                         <table className="w-full text-sm">
                             <thead>
-                                <tr className="bg-slate-50 text-left">
+                                <tr className="bg-slate-50 text-left whitespace-nowrap">
                                     <th className="px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wide">ID</th>
                                     <th className="px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wide">Nama</th>
                                     <th className="px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wide">Tipe</th>
@@ -287,7 +287,7 @@ const TopologyTableScreen: React.FC = () => {
                                     <th className="px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wide">Deskripsi</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100">
+                            <tbody className="divide-y divide-slate-100 whitespace-nowrap">
                                 {filteredNodes.length === 0 ? (
                                     <tr><td colSpan={10} className="px-4 py-8 text-center text-slate-400">Tidak ada data ditemukan</td></tr>
                                 ) : (
@@ -324,6 +324,57 @@ const TopologyTableScreen: React.FC = () => {
                             </tbody>
                         </table>
                     </div>
+
+                    {/* --- MOBILE CARD VIEW (NODES) --- */}
+                    <div className="lg:hidden divide-y divide-slate-100">
+                        {filteredNodes.length === 0 ? (
+                            <div className="px-4 py-8 text-center text-slate-400 text-xs">Tidak ada data ditemukan</div>
+                        ) : (
+                            filteredNodes.map(node => (
+                                <div key={node.node_id} className="p-4 space-y-3 hover:bg-slate-50 transition-colors">
+                                    <div className="flex justify-between items-start gap-2">
+                                        <div>
+                                            <div className="font-semibold text-slate-800 text-sm">{node.name}</div>
+                                            <div className="text-slate-500 font-mono text-[10px]">ID: {node.node_id}</div>
+                                        </div>
+                                        <div className="flex flex-col items-end gap-1">
+                                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${typeColors[node.type] || 'bg-slate-100 text-slate-600'}`}>
+                                                {node.type}
+                                            </span>
+                                            <span className={`inline-flex items-center gap-1 text-[10px] font-medium ${node.status === 'ONLINE' ? 'text-green-600' : 'text-red-500'}`}>
+                                                <span className={`w-1.5 h-1.5 rounded-full ${node.status === 'ONLINE' ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                                                {node.status}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-2 text-[10px]">
+                                        <div className="space-y-1">
+                                            <span className="text-slate-400 block font-semibold">Port:</span>
+                                            <span className={`text-slate-700 ${node.total_ports && node.used_ports! >= node.total_ports ? 'text-red-600 font-bold' : ''}`}>
+                                                {node.total_ports ? `${node.used_ports}/${node.total_ports}` : '-'}
+                                            </span>
+                                        </div>
+                                        <div className="space-y-1 text-right">
+                                            <span className="text-slate-400 block font-semibold">Brand/Kabel:</span>
+                                            <span className="text-slate-700">{node.brand || '-'} / {node.cable_count} Kabel</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 space-y-1 text-[10px]">
+                                        <div className="flex justify-between">
+                                            <span className="text-slate-400 font-semibold">Koordinat:</span>
+                                            <span className="font-mono text-slate-600">{node.lat?.toFixed(5)}, {node.lng?.toFixed(5)}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-slate-400 font-semibold">Desc:</span>
+                                            <span className="text-slate-500 truncate max-w-[150px]">{node.description || '-'}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
                 </div>
             )}
 
@@ -345,10 +396,10 @@ const TopologyTableScreen: React.FC = () => {
                     </div>
 
                     {/* Table */}
-                    <div className="overflow-x-auto">
+                    <div className="hidden lg:block overflow-x-auto">
                         <table className="w-full text-sm">
                             <thead>
-                                <tr className="bg-slate-50 text-left">
+                                <tr className="bg-slate-50 text-left whitespace-nowrap">
                                     <th className="px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wide">ID</th>
                                     <th className="px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wide">Dari (Source)</th>
                                     <th className="px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wide">Ke (Target)</th>
@@ -357,7 +408,7 @@ const TopologyTableScreen: React.FC = () => {
                                     <th className="px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wide">Deskripsi</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100">
+                            <tbody className="divide-y divide-slate-100 whitespace-nowrap">
                                 {filteredCables.length === 0 ? (
                                     <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400">Tidak ada data ditemukan</td></tr>
                                 ) : (
@@ -378,6 +429,42 @@ const TopologyTableScreen: React.FC = () => {
                                 )}
                             </tbody>
                         </table>
+                    </div>
+
+                    {/* --- MOBILE CARD VIEW (CABLES) --- */}
+                    <div className="lg:hidden divide-y divide-slate-100">
+                        {filteredCables.length === 0 ? (
+                            <div className="px-4 py-8 text-center text-slate-400 text-xs">Tidak ada data ditemukan</div>
+                        ) : (
+                            filteredCables.map(cable => (
+                                <div key={cable.cable_id} className="p-4 space-y-3 hover:bg-slate-50 transition-colors">
+                                    <div className="flex justify-between items-start gap-2">
+                                        <div className="flex flex-col gap-1">
+                                            <span className="font-bold text-slate-800 text-xs">{cable.source_name}</span>
+                                            <span className="text-[10px] text-slate-400 leading-none">➜ ke</span>
+                                            <span className="font-bold text-sky-700 text-xs">{cable.target_name}</span>
+                                        </div>
+                                        <div className="flex flex-col items-end gap-1.5">
+                                            <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[9px] font-bold">
+                                                {cable.cable_type || '-'}
+                                            </span>
+                                            <span className="text-[10px] font-mono text-slate-500">ID: {cable.cable_id}</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 space-y-1 text-[10px]">
+                                        <div className="flex justify-between">
+                                            <span className="text-slate-400 font-semibold">Panjang:</span>
+                                            <span className="font-semibold text-emerald-600">{cable.length_meter > 0 ? `${cable.length_meter.toFixed(1)} m` : '-'}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-slate-400 font-semibold">Desc:</span>
+                                            <span className="text-slate-500 truncate max-w-[150px]">{cable.description || '-'}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))
+                        )}
                     </div>
                 </div>
             )}

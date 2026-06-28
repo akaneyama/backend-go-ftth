@@ -26,6 +26,7 @@ func RunMigrations() {
 		&models.ODP{},
 		&models.ClientNode{},
 		&models.Client{},
+		&models.IPPool{},
 		&models.TopologyMapping{},
 		&models.RxPowerHistory{},
 	)
@@ -110,6 +111,7 @@ func applyForeignKeys(db *gorm.DB) error {
 		 ADD CONSTRAINT fk_topology_mappings_odp
 		 FOREIGN KEY (odp_node_id) REFERENCES network_nodes(node_id)
 		 ON DELETE CASCADE ON UPDATE CASCADE;`,
+
 	}
 
 	for _, query := range fkQueries {

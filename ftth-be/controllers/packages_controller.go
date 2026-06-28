@@ -21,8 +21,7 @@ func CreatePackage(c *fiber.Ctx) error {
 	}
 
 	// Validasi field kosong
-	if internetpackage.PackageName == "" || internetpackage.PackageLimit == "" ||
-		internetpackage.PackagePrice == 0 || internetpackage.PackageDesc == "" {
+	if internetpackage.PackageName == "" || internetpackage.PackageLimit == "" || internetpackage.PackageDesc == "" {
 		return utils.Failed(c, "all field must be filled!")
 	}
 
@@ -32,8 +31,8 @@ func CreatePackage(c *fiber.Ctx) error {
 		return utils.Failed(c, "invalid limit format (contoh: 20M/20M)")
 	}
 
-	if internetpackage.PackagePrice <= 0 {
-		return utils.Failed(c, "package price must be greater than 0!")
+	if internetpackage.PackagePrice < 0 {
+		return utils.Failed(c, "package price cannot be negative!")
 	}
 
 	// Simpan ke database
@@ -95,8 +94,8 @@ func UpdateInternetPackage(c *fiber.Ctx) error {
 		return utils.Failed(c, "invalid request body")
 	}
 
-	if payload.PackageName == "" || payload.PackageLimit == "" || payload.PackagePrice <= 0 || payload.PackageDesc == "" {
-		return utils.Failed(c, "all fields must be filled and valid")
+	if payload.PackageName == "" || payload.PackageLimit == "" || payload.PackagePrice < 0 || payload.PackageDesc == "" {
+		return utils.Failed(c, "all fields must be filled and valid (price cannot be negative)")
 	}
 
 	// Update field

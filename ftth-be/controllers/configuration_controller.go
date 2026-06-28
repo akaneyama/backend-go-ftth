@@ -97,7 +97,7 @@ func ConfigureRouterProfile(c *fiber.Ctx) error {
 		return utils.Failed(c, err.Error())
 	}
 
-	logDesc := fmt.Sprintf("Sukses push profile %s '%s' (Q: %s) ke %s", req.ConfigType, pkg.PackageName, router.RouterName)
+	logDesc := fmt.Sprintf("Sukses push profile %s '%s' (Q: %s) ke %s", req.ConfigType, pkg.PackageName, pkg.PackageLimit, router.RouterName)
 	utils.CreateLog(adminPelaku, "CONFIGURATION", "SUCCESS", logDesc)
 
 	return utils.Success(c, "Konfigurasi profile berhasil diterapkan", nil)

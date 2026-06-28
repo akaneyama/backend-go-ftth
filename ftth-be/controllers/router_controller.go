@@ -6,10 +6,12 @@ import (
 	"akane/be-ftth/models"
 	"akane/be-ftth/utils"
 	"fmt"
+	"strings"
 
 	"github.com/gofiber/fiber/v2"
 )
 
+// kalau gabisa tambah pppoe bisa pakai restapi
 func CreateRouter(c *fiber.Ctx) error {
 	adminPelaku := utils.GetUserFromContext(c)
 	var router models.Router
@@ -85,6 +87,7 @@ func UpdateRouter(c *fiber.Ctx) error {
 	router.RouterName = payload.RouterName
 	router.RouterAddress = payload.RouterAddress
 	router.RouterPort = payload.RouterPort
+	router.RouterRestPort = payload.RouterRestPort
 	router.RouterStatus = payload.RouterStatus
 	router.RouterType = payload.RouterType
 	router.RouterRemoteType = payload.RouterRemoteType
@@ -201,5 +204,146 @@ func TestRouterConnection(c *fiber.Ctx) error {
 
 	return utils.Success(c, "Koneksi Berhasil", fiber.Map{
 		"system_info": info,
+	})
+}
+
+func GetRouterPPPProfiles(c *fiber.Ctx) error {
+	id := c.Params("id")
+	var router models.Router
+
+	if err := config.DB.Where("router_id = ? AND is_deleted = 0", id).First(&router).Error; err != nil {
+		return utils.Failed(c, "Router tidak ditemukan")
+	}
+	decryptedPass, err := utils.DecryptAES(router.RouterPassword)
+	if err != nil {
+		return utils.Failed(c, "Gagal mendekripsi password router")
+	}
+
+	profiles, err := services.GetPPPoEProfiles(
+		router.RouterAddress,
+		router.RouterPort,
+		router.RouterUsername,
+		decryptedPass,
+		router.RouterRemoteType,
+	)
+
+	if err != nil {
+		return utils.Failed(c, "Gagal mengambil profile: "+err.Error())
+	}
+
+	return utils.Success(c, "Berhasil mengambil PPP Profiles", profiles)
+}
+
+func TestPPPoEConnection(c *fiber.Ctx) error {
+	type CheckPayload struct {
+		RouterID      string `json:"router_id"`
+		PppoeUsername string `json:"pppoe_username"`
+		PppoePassword string `json:"pppoe_password"`
+		PppoeProfile  string `json:"pppoe_profile"`
+		IPAddress     string `json:"ip_address"`
+	}
+
+	var payload CheckPayload
+	if err := c.BodyParser(&payload); err != nil {
+		return utils.Failed(c, "Invalid request body")
+	}
+
+	if payload.RouterID == "" || payload.PppoeUsername == "" || payload.PppoePassword == "" {
+		return utils.Failed(c, "Router, Username, dan Password PPPoE harus diisi")
+	}
+
+	var router models.Router
+	if err := config.DB.Where("router_id = ? AND is_deleted = 0", payload.RouterID).First(&router).Error; err != nil {
+		return utils.Failed(c, "Router tidak ditemukan")
+	}
+
+	decryptedPass, err := utils.DecryptAES(router.RouterPassword)
+	if err != nil {
+		return utils.Failed(c, "Gagal mendekripsi password router")
+	}
+
+	localAddr := "" // Kosongkan saja untuk tes
+	prof := payload.PppoeProfile
+	if prof == "" {
+		prof = "default"
+	}
+
+	port := router.RouterPort
+	if strings.HasPrefix(router.RouterRemoteType, "REST") {
+		port = router.RouterRestPort
+	}
+
+	errMikrotik := services.CreateOrUpdatePPPoESecret(
+		router.RouterAddress,
+		port,
+		router.RouterUsername,
+		decryptedPass,
+		router.RouterRemoteType,
+		payload.PppoeUsername,
+		payload.PppoePassword,
+		prof,
+		payload.IPAddress,
+		localAddr,
+	)
+
+	if errMikrotik != nil {
+		return utils.Failed(c, "Gagal mengeksekusi PPPoE ke Mikrotik: "+errMikrotik.Error())
+	}
+
+	return utils.Success(c, "Berhasil! Data PPPoE tersimpan di Mikrotik.", nil)
+}
+
+func CheckPPPoEExists(c *fiber.Ctx) error {
+	type CheckPayload struct {
+		RouterID      string `json:"router_id"`
+		PppoeUsername string `json:"pppoe_username"`
+	}
+
+	var payload CheckPayload
+	if err := c.BodyParser(&payload); err != nil {
+		return utils.Failed(c, "Invalid request body")
+	}
+
+	if payload.RouterID == "" || payload.PppoeUsername == "" {
+		return utils.Failed(c, "Router dan Username PPPoE harus diisi")
+	}
+
+	var router models.Router
+	if err := config.DB.Where("router_id = ? AND is_deleted = 0", payload.RouterID).First(&router).Error; err != nil {
+		return utils.Failed(c, "Router tidak ditemukan")
+	}
+
+	decryptedPass, err := utils.DecryptAES(router.RouterPassword)
+	if err != nil {
+		return utils.Failed(c, "Gagal mendekripsi password router")
+	}
+
+	port := router.RouterPort
+	if strings.HasPrefix(router.RouterRemoteType, "REST") {
+		port = router.RouterRestPort
+	}
+
+	data, errMikrotik := services.CheckPPPoESecret(
+		router.RouterAddress,
+		port,
+		router.RouterUsername,
+		decryptedPass,
+		router.RouterRemoteType,
+		payload.PppoeUsername,
+	)
+
+	if errMikrotik != nil {
+		return utils.Failed(c, "Gagal mengecek PPPoE di Mikrotik: "+errMikrotik.Error())
+	}
+
+	if data == nil {
+		return utils.Success(c, "Data PPPoE BELUM ADA di Mikrotik.", fiber.Map{
+			"exists": false,
+		})
+	}
+
+	return utils.Success(c, "Data PPPoE SUDAH ADA di Mikrotik.", fiber.Map{
+		"exists": true,
+		"data":   data,
 	})
 }

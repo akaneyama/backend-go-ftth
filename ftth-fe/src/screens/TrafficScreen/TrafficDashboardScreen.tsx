@@ -42,6 +42,16 @@ const TrafficDashboardScreen: React.FC = () => {
     const [isSyncing, setIsSyncing] = useState(false);
     const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
     
+    // Get User Role
+    const token = localStorage.getItem('jwt_token') || '';
+    let userRole = 1;
+    try {
+        if (token) {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            userRole = Number(payload.role) || 1;
+        }
+    } catch (e) {}
+    
     // Filter States
     const [filterDate, setFilterDate] = useState<string>(new Date().toISOString().split('T')[0]);
     const [searchTerm, setSearchTerm] = useState('');
@@ -245,15 +255,17 @@ const TrafficDashboardScreen: React.FC = () => {
                     </div>
 
                     {/* Sync Button */}
-                    <button 
-                        onClick={handleManualSync}
-                        disabled={isSyncing || isLoading}
-                        className={`flex items-center justify-center gap-1.5 bg-sky-500 hover:bg-sky-600 text-white px-5 py-2.5 rounded-2xl text-xs font-bold transition-all w-full lg:w-auto shadow-md shadow-sky-500/10 active:scale-95
-                        ${(isSyncing || isLoading) ? 'opacity-70 cursor-not-allowed' : 'hover:shadow-lg'}`}
-                    >
-                        <CloudArrowDown size={16} className={isSyncing ? "animate-bounce" : ""} weight="bold"/>
-                        <span>{isSyncing ? 'Menghubungkan...' : 'Sinkronisasi Router'}</span>
-                    </button>
+                    {userRole === 1 && (
+                        <button 
+                            onClick={handleManualSync}
+                            disabled={isSyncing || isLoading}
+                            className={`flex items-center justify-center gap-1.5 bg-sky-500 hover:bg-sky-600 text-white px-5 py-2.5 rounded-2xl text-xs font-bold transition-all w-full lg:w-auto shadow-md shadow-sky-500/10 active:scale-95
+                            ${(isSyncing || isLoading) ? 'opacity-70 cursor-not-allowed' : 'hover:shadow-lg'}`}
+                        >
+                            <CloudArrowDown size={16} className={isSyncing ? "animate-bounce" : ""} weight="bold"/>
+                            <span>{isSyncing ? 'Menghubungkan...' : 'Sinkronisasi Router'}</span>
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -323,7 +335,7 @@ const TrafficDashboardScreen: React.FC = () => {
                                         <p className="text-xs font-black text-slate-800 uppercase tracking-wider">Tidak ada riwayat traffic</p>
                                         <p className="text-[10px] text-slate-500 font-bold mt-0.5">Tanggal: <span className="font-mono">{filterDate}</span></p>
                                         
-                                        {filterDate === new Date().toISOString().split('T')[0] && (
+                                        {filterDate === new Date().toISOString().split('T')[0] && userRole === 1 && (
                                             <button 
                                                 onClick={handleManualSync}
                                                 className="mt-3 text-[10px] text-sky-500 hover:text-sky-600 font-bold uppercase tracking-wider transition underline"

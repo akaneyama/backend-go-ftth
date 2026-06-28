@@ -25,7 +25,11 @@ import {
     PencilLine,
     Globe,
     Barcode,
-    Key
+    Key,
+    LockKey,
+    DiceFive,
+    Network,
+    ArrowsClockwise
 } from '@phosphor-icons/react';
 
 // Perbaikan bug icon leaflet yang hilang saat production bundle
@@ -58,6 +62,14 @@ interface MapOdpNode {
     name: string;
     type: string;
 }
+
+interface IPPool {
+    id: number;
+    name: string;
+    subnet: string;
+    gateway: string;
+}
+
 
 // Map Click Listener Component
 const MapClickListener: React.FC<{ onSelect: (lat: number, lng: number) => void }> = ({ onSelect }) => {
@@ -92,6 +104,8 @@ const ClientFormScreen: React.FC = () => {
     // Area FAT (ODP) selection
     const [fat, setFat] = useState<string>('');
     const [fatMode, setFatMode] = useState<'select' | 'manual'>('select');
+    const [fatDropdownOpen, setFatDropdownOpen] = useState(false);
+    const [fatSearchQuery, setFatSearchQuery] = useState('');
     const [odpNodes, setOdpNodes] = useState<MapOdpNode[]>([]);
 
     // Internet Package
@@ -99,14 +113,26 @@ const ClientFormScreen: React.FC = () => {
     const [packages, setPackages] = useState<InternetPackage[]>([]);
 
     // Network & ONT parameters
+    const [ipPoolId, setIpPoolId] = useState<string>('');
+    const [ipPools, setIpPools] = useState<IPPool[]>([]);
+    const [availableIps, setAvailableIps] = useState<string[]>([]);
     const [ipAddress, setIpAddress] = useState<string>('');
+    const [ipDropdownOpen, setIpDropdownOpen] = useState(false);
+    const [ipSearchQuery, setIpSearchQuery] = useState('');
+    
     const [onuSN, setOnuSN] = useState<string>('');
+    
     const [pppoeUsername, setPppoeUsername] = useState<string>('');
+    const [pppoePassword, setPppoePassword] = useState<string>('');
+    const [pppoeProfile, setPppoeProfile] = useState<string>('');
+    const [pppProfiles, setPppProfiles] = useState<string[]>([]);
+    const [syncMikrotik, setSyncMikrotik] = useState<boolean>(false);
 
     // Geolocation coordinates
     const [latitude, setLatitude] = useState<number>(0);
     const [longitude, setLongitude] = useState<number>(0);
     const [hasSetLocation, setHasSetLocation] = useState<boolean>(false);
+    const [useMap, setUseMap] = useState<boolean>(false);
     
     // Default center untuk map display saja (tidak dikirim ke server jika belum diset)
     const mapCenter: [number, number] = hasSetLocation && latitude !== 0 && longitude !== 0
@@ -154,7 +180,13 @@ const ClientFormScreen: React.FC = () => {
                     setOdpNodes(filteredOdps);
                 }
 
-                // 4. If edit mode, fetch Client details
+                // 4. Fetch IP Pools
+                const poolsRes = await api.get('/api/ippools');
+                if (poolsRes.data.status === 'success') {
+                    setIpPools(poolsRes.data.data || []);
+                }
+
+                // 5. If edit mode, fetch Client details
                 if (isEdit) {
                     const clientRes = await api.get(`/api/clients/${id}`);
                     if (clientRes.data.status === 'success') {
@@ -165,15 +197,17 @@ const ClientFormScreen: React.FC = () => {
                         setRouterId(data.router_id || '');
                         setFat(data.fat || '');
                         setPackageId(data.package_id ? data.package_id.toString() : '');
+                        setIpPoolId(data.ip_pool_id ? data.ip_pool_id.toString() : '');
                         setIpAddress(data.ip_address || '');
                         setOnuSN(data.onu_sn || '');
                         setPppoeUsername(data.pppoe_username || '');
+                        setPppoePassword(data.pppoe_password || '');
+                        setPppoeProfile(data.pppoe_profile || '');
                         if (data.latitude && data.latitude !== 0) {
                             setLatitude(data.latitude);
-                            setHasSetLocation(true);
-                        }
-                        if (data.longitude && data.longitude !== 0) {
                             setLongitude(data.longitude);
+                            setHasSetLocation(true);
+                            setUseMap(true); // Tampilkan peta jika koordinat sudah ada
                         }
                         if (data.house_photo) {
                             const baseUrl = api.defaults.baseURL || '';
@@ -197,6 +231,44 @@ const ClientFormScreen: React.FC = () => {
 
         fetchInitialData();
     }, [id, isEdit]);
+
+    // Fetch PPP Profiles when Router is selected
+    useEffect(() => {
+        if (!routerId) {
+            setPppProfiles([]);
+            return;
+        }
+        const fetchPppProfiles = async () => {
+            try {
+                const res = await api.get(`/api/routers/${routerId}/ppp-profiles`);
+                if (res.data.status === 'success') {
+                    setPppProfiles(res.data.data || []);
+                }
+            } catch (err) {
+                console.log("Gagal memuat profil PPP", err);
+            }
+        };
+        fetchPppProfiles();
+    }, [routerId]);
+
+    // Fetch Available IPs when IP Pool is selected
+    useEffect(() => {
+        if (!ipPoolId) {
+            setAvailableIps([]);
+            return;
+        }
+        const fetchAvailableIps = async () => {
+            try {
+                const res = await api.get(`/api/ippools/${ipPoolId}/available-ips`);
+                if (res.data.status === 'success') {
+                    setAvailableIps(res.data.data || []);
+                }
+            } catch (err) {
+                console.log("Gagal memuat IP yang tersedia", err);
+            }
+        };
+        fetchAvailableIps();
+    }, [ipPoolId]);
 
     // Auto-map router based on fat (ODP) selection
     useEffect(() => {
@@ -294,11 +366,15 @@ const ClientFormScreen: React.FC = () => {
         formData.append('router_id', routerId);
         formData.append('fat', fat);
         formData.append('package_id', packageId);
+        if (ipPoolId) formData.append('ip_pool_id', ipPoolId);
         formData.append('latitude', latitude.toString());
         formData.append('longitude', longitude.toString());
         formData.append('ip_address', ipAddress);
         formData.append('onu_sn', onuSN);
         formData.append('pppoe_username', pppoeUsername);
+        formData.append('pppoe_password', pppoePassword);
+        formData.append('pppoe_profile', pppoeProfile);
+        formData.append('sync_mikrotik', syncMikrotik.toString());
         
         if (photoFile) {
             formData.append('house_photo', photoFile);
@@ -321,7 +397,7 @@ const ClientFormScreen: React.FC = () => {
                 Swal.fire({
                     icon: 'success',
                     title: isEdit ? 'Pelanggan Diperbarui!' : 'Pelanggan Ditambahkan!',
-                    text: res.data.message || 'Operasi berhasil disimpan.',
+                    text: res.data.remark || res.data.message || 'Operasi berhasil disimpan.',
                     confirmButtonColor: '#0ea5e9'
                 });
                 navigate('/admin/clients');
@@ -329,9 +405,104 @@ const ClientFormScreen: React.FC = () => {
                 Swal.fire('Gagal', res.data.message || 'Gagal menyimpan data.', 'error');
             }
         } catch (err: any) {
+            console.error("Error Detail dari Server:", err.response?.data || err);
             Swal.fire('Error', err.response?.data?.message || 'Terjadi kesalahan pada server.', 'error');
         } finally {
             setSubmitting(false);
+        }
+    };
+
+    const handleCheckMikrotik = async () => {
+        if (!routerId || !pppoeUsername || !pppoePassword) {
+            Swal.fire('Validasi Gagal', 'Router, Username PPPoE, dan Password PPPoE wajib diisi untuk tes koneksi.', 'warning');
+            return;
+        }
+        
+        Swal.fire({
+            title: 'Mengecek Koneksi...',
+            text: 'Mencoba membuat/memperbarui PPPoE Secret di Mikrotik.',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        try {
+            const res = await api.post('/api/routers/test-pppoe', {
+                router_id: routerId,
+                pppoe_username: pppoeUsername,
+                pppoe_password: pppoePassword,
+                pppoe_profile: pppoeProfile || 'default',
+                ip_address: ipAddress || ''
+            });
+
+            if (res.data.status === 'success') {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil!',
+                    text: res.data.message || 'PPPoE berhasil ditambahkan ke Mikrotik.',
+                    confirmButtonColor: '#0ea5e9'
+                });
+            } else {
+                Swal.fire('Gagal', res.data.message || 'Gagal mengeksekusi ke Mikrotik.', 'error');
+            }
+        } catch (err: any) {
+            console.error("Error Mikrotik Check:", err.response?.data || err);
+            Swal.fire('Error', err.response?.data?.message || 'Terjadi kesalahan jaringan atau Router tidak dapat dihubungi.', 'error');
+        }
+    };
+
+    const handleCheckExistsMikrotik = async () => {
+        if (!routerId || !pppoeUsername) {
+            Swal.fire('Validasi Gagal', 'Router dan Username PPPoE wajib diisi untuk mengecek keberadaan akun di Mikrotik.', 'warning');
+            return;
+        }
+
+        Swal.fire({
+            title: 'Mengecek ke Mikrotik...',
+            text: 'Mencari apakah username PPPoE ini sudah terdaftar di Router...',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        try {
+            const res = await api.post('/api/routers/check-pppoe', {
+                router_id: routerId,
+                pppoe_username: pppoeUsername
+            });
+
+            if (res.data.status === 'success') {
+                if (res.data.data?.exists) {
+                    const mkData = res.data.data.data;
+                    let htmlContent = `<div class="text-left text-sm space-y-2 mt-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                        <p><strong>Username:</strong> ${mkData.name || '-'}</p>
+                        <p><strong>Password:</strong> ${mkData.password || '-'}</p>
+                        <p><strong>Profile:</strong> ${mkData.profile || '-'}</p>
+                        <p><strong>Status:</strong> ${mkData.disabled === 'true' ? '<span class="text-rose-500 font-bold">DISABLED</span>' : '<span class="text-emerald-500 font-bold">ACTIVE</span>'}</p>
+                    </div>`;
+
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Data PPPoE Ditemukan!',
+                        html: htmlContent,
+                        confirmButtonColor: '#0ea5e9'
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Tidak Ditemukan',
+                        text: 'Username PPPoE ini BELUM terdaftar di Router Mikrotik terpilih.',
+                        confirmButtonColor: '#f59e0b'
+                    });
+                }
+            } else {
+                Swal.fire('Gagal', res.data.message || 'Gagal mengeksekusi ke Mikrotik.', 'error');
+            }
+        } catch (err: any) {
+            console.error("Error Mikrotik Check Exists:", err.response?.data || err);
+            Swal.fire('Error', err.response?.data?.message || 'Terjadi kesalahan jaringan atau Router tidak dapat dihubungi.', 'error');
         }
     };
 
@@ -454,16 +625,64 @@ const ClientFormScreen: React.FC = () => {
                             <div className="relative">
                                 <MapTrifold className="absolute inset-y-0 left-0 h-full w-5 text-slate-400 ml-3.5" />
                                 {fatMode === 'select' ? (
-                                    <select
-                                        value={fat}
-                                        onChange={(e) => setFat(e.target.value)}
-                                        className="w-full pl-10 pr-4 py-2.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 cursor-pointer font-semibold text-slate-650 text-slate-600 bg-white"
-                                    >
-                                        <option value="">-- Pilih Kotak ODP dari Peta --</option>
-                                        {odpNodes.map(odp => (
-                                            <option key={odp.node_id} value={odp.name}>📍 {odp.name} (ODP Map Node)</option>
-                                        ))}
-                                    </select>
+                                    <>
+                                        <div 
+                                            onClick={() => setFatDropdownOpen(!fatDropdownOpen)}
+                                            className="w-full pl-10 pr-4 py-2.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 cursor-pointer font-semibold text-slate-700 bg-white flex justify-between items-center"
+                                        >
+                                            <span>{fat ? `📍 ${fat}` : '-- Pilih Kotak ODP dari Peta --'}</span>
+                                            <span className="text-slate-400 text-[10px]">▼</span>
+                                        </div>
+
+                                        {fatDropdownOpen && (
+                                            <>
+                                                <div className="fixed inset-0 z-40" onClick={() => setFatDropdownOpen(false)}></div>
+                                                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-50 overflow-hidden">
+                                                    <div className="p-2 border-b border-slate-100 bg-slate-50">
+                                                        <input 
+                                                            type="text" 
+                                                            placeholder="Cari ODP/FAT..." 
+                                                            value={fatSearchQuery}
+                                                            onChange={(e) => setFatSearchQuery(e.target.value)}
+                                                            className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-sky-500 font-medium"
+                                                            autoFocus
+                                                        />
+                                                    </div>
+                                                    <div className="max-h-48 overflow-y-auto">
+                                                        <div 
+                                                            className={`px-3 py-2 text-xs cursor-pointer hover:bg-sky-50 ${!fat ? 'bg-sky-50 text-sky-700 font-bold' : 'text-slate-600'}`}
+                                                            onClick={() => {
+                                                                setFat('');
+                                                                setFatDropdownOpen(false);
+                                                            }}
+                                                        >
+                                                            -- Kosongkan --
+                                                        </div>
+                                                        {odpNodes
+                                                            .filter(odp => odp.name.toLowerCase().includes(fatSearchQuery.toLowerCase()))
+                                                            .map(odp => (
+                                                                <div 
+                                                                    key={odp.node_id} 
+                                                                    className={`px-3 py-2 text-xs cursor-pointer hover:bg-sky-50 border-t border-slate-50 ${fat === odp.name ? 'bg-sky-50 text-sky-700 font-bold' : 'text-slate-600'}`}
+                                                                    onClick={() => {
+                                                                        setFat(odp.name);
+                                                                        setFatDropdownOpen(false);
+                                                                    }}
+                                                                >
+                                                                    📍 {odp.name}
+                                                                </div>
+                                                            ))
+                                                        }
+                                                        {odpNodes.filter(odp => odp.name.toLowerCase().includes(fatSearchQuery.toLowerCase())).length === 0 && (
+                                                            <div className="px-3 py-3 text-center text-[10px] text-slate-400 font-medium">
+                                                                Tidak ada ODP yang cocok
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </>
+                                        )}
+                                    </>
                                 ) : (
                                     <input 
                                         type="text" 
@@ -489,7 +708,27 @@ const ClientFormScreen: React.FC = () => {
                                     <option value="">-- Pilih Paket Internet (Kecepatan / Harga) --</option>
                                     {packages.map(p => (
                                         <option key={p.package_id} value={p.package_id.toString()}>
-                                            ⚡ {p.package_name} ({p.package_limit}) - Rp {p.package_price.toLocaleString('id-ID')} / bulan
+                                            ⚡ {p.package_name} ({p.package_limit}) - {p.package_price === 0 ? 'Gratis' : `Rp ${p.package_price.toLocaleString('id-ID')} / bulan`}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
+                        {/* Pilihan IP Pool */}
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Sumber Alamat IP (IP Pool)</label>
+                            <div className="relative">
+                                <Network className="absolute inset-y-0 left-0 h-full w-5 text-slate-400 ml-3.5" />
+                                <select
+                                    value={ipPoolId}
+                                    onChange={(e) => setIpPoolId(e.target.value)}
+                                    className="w-full pl-10 pr-4 py-2.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 cursor-pointer font-semibold text-slate-650 text-slate-600 bg-white"
+                                >
+                                    <option value="">-- Pilih IP Pool (Opsional) --</option>
+                                    {ipPools.map(pool => (
+                                        <option key={pool.id} value={pool.id.toString()}>
+                                            {pool.name} ({pool.subnet})
                                         </option>
                                     ))}
                                 </select>
@@ -501,13 +740,74 @@ const ClientFormScreen: React.FC = () => {
                             <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Alamat IP ONT (IP Address)</label>
                             <div className="relative">
                                 <Globe className="absolute inset-y-0 left-0 h-full w-5 text-slate-400 ml-3.5" />
-                                <input 
-                                    type="text" 
-                                    value={ipAddress}
-                                    onChange={(e) => setIpAddress(e.target.value)}
-                                    placeholder="ex: 192.168.100.15 (Opsional)" 
-                                    className="w-full pl-10 pr-4 py-2.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 font-semibold text-slate-700 transition"
-                                />
+                                {ipPoolId ? (
+                                    <>
+                                        <div 
+                                            onClick={() => setIpDropdownOpen(!ipDropdownOpen)}
+                                            className="w-full pl-10 pr-4 py-2.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 cursor-pointer font-semibold text-slate-700 bg-white flex justify-between items-center"
+                                        >
+                                            <span>{ipAddress || '-- Pilih IP Tersedia --'}</span>
+                                            <span className="text-slate-400 text-[10px]">▼</span>
+                                        </div>
+
+                                        {ipDropdownOpen && (
+                                            <>
+                                                <div className="fixed inset-0 z-40" onClick={() => setIpDropdownOpen(false)}></div>
+                                                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-50 overflow-hidden">
+                                                    <div className="p-2 border-b border-slate-100 bg-slate-50">
+                                                        <input 
+                                                            type="text" 
+                                                            placeholder="Cari alamat IP..." 
+                                                            value={ipSearchQuery}
+                                                            onChange={(e) => setIpSearchQuery(e.target.value)}
+                                                            className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-sky-500 font-medium"
+                                                            autoFocus
+                                                        />
+                                                    </div>
+                                                    <div className="max-h-48 overflow-y-auto">
+                                                        <div 
+                                                            className={`px-3 py-2 text-xs cursor-pointer hover:bg-sky-50 ${!ipAddress ? 'bg-sky-50 text-sky-700 font-bold' : 'text-slate-600'}`}
+                                                            onClick={() => {
+                                                                setIpAddress('');
+                                                                setIpDropdownOpen(false);
+                                                            }}
+                                                        >
+                                                            -- Kosongkan (Otomatis) --
+                                                        </div>
+                                                        {availableIps
+                                                            .filter(ip => ip.includes(ipSearchQuery))
+                                                            .map(ip => (
+                                                                <div 
+                                                                    key={ip} 
+                                                                    className={`px-3 py-2 text-xs cursor-pointer hover:bg-sky-50 border-t border-slate-50 ${ipAddress === ip ? 'bg-sky-50 text-sky-700 font-bold' : 'text-slate-600'}`}
+                                                                    onClick={() => {
+                                                                        setIpAddress(ip);
+                                                                        setIpDropdownOpen(false);
+                                                                    }}
+                                                                >
+                                                                    {ip}
+                                                                </div>
+                                                            ))
+                                                        }
+                                                        {availableIps.filter(ip => ip.includes(ipSearchQuery)).length === 0 && (
+                                                            <div className="px-3 py-3 text-center text-[10px] text-slate-400 font-medium">
+                                                                Tidak ada IP yang cocok
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </>
+                                        )}
+                                    </>
+                                ) : (
+                                    <input 
+                                        type="text" 
+                                        value={ipAddress}
+                                        onChange={(e) => setIpAddress(e.target.value)}
+                                        placeholder="ex: 192.168.100.15 (Opsional)" 
+                                        className="w-full pl-10 pr-4 py-2.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 font-semibold text-slate-700 transition"
+                                    />
+                                )}
                             </div>
                         </div>
 
@@ -526,18 +826,100 @@ const ClientFormScreen: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* PPPoE Username */}
+                        {/* PPPoE Profile */}
                         <div className="space-y-2">
-                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Username PPPoE (Opsional)</label>
+                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Profil PPPoE (Router)</label>
                             <div className="relative">
-                                <Key className="absolute inset-y-0 left-0 h-full w-5 text-slate-400 ml-3.5" />
-                                <input 
-                                    type="text" 
-                                    value={pppoeUsername}
-                                    onChange={(e) => setPppoeUsername(e.target.value)}
-                                    placeholder="ex: budi@net (Opsional)" 
-                                    className="w-full pl-10 pr-4 py-2.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 font-semibold text-slate-700 transition"
-                                />
+                                <Tag className="absolute inset-y-0 left-0 h-full w-5 text-slate-400 ml-3.5" />
+                                <select
+                                    value={pppoeProfile}
+                                    onChange={(e) => setPppoeProfile(e.target.value)}
+                                    disabled={!routerId}
+                                    className="w-full pl-10 pr-4 py-2.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 cursor-pointer font-semibold text-slate-650 text-slate-600 bg-white disabled:bg-slate-100 disabled:cursor-not-allowed"
+                                >
+                                    <option value="">{routerId ? '-- Pilih Profil PPPoE --' : '-- Pilih Router Dahulu --'}</option>
+                                    {pppProfiles.map(p => (
+                                        <option key={p} value={p}>{p}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {/* PPPoE Username */}
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Username PPPoE</label>
+                                <div className="relative">
+                                    <Key className="absolute inset-y-0 left-0 h-full w-5 text-slate-400 ml-3.5" />
+                                    <input 
+                                        type="text" 
+                                        value={pppoeUsername}
+                                        onChange={(e) => setPppoeUsername(e.target.value)}
+                                        placeholder="Username akun pppoe" 
+                                        className="w-full pl-10 pr-4 py-2.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 font-semibold text-slate-700 transition"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* PPPoE Password */}
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex justify-between">
+                                    Password PPPoE
+                                    <button 
+                                        type="button" 
+                                        onClick={() => setPppoePassword(Math.random().toString(36).slice(-6))}
+                                        className="text-[10px] text-sky-600 hover:text-sky-800 flex items-center gap-1 active:scale-95"
+                                    >
+                                        <DiceFive size={14} /> Generate
+                                    </button>
+                                </label>
+                                <div className="relative">
+                                    <LockKey className="absolute inset-y-0 left-0 h-full w-5 text-slate-400 ml-3.5" />
+                                    <input 
+                                        type="text" 
+                                        value={pppoePassword}
+                                        onChange={(e) => setPppoePassword(e.target.value)}
+                                        placeholder="Password akun pppoe" 
+                                        className="w-full pl-10 pr-4 py-2.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 font-semibold text-slate-700 transition"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Sync Mikrotik Toggle & Test Button */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100 mt-4">
+                            <div className="flex items-center gap-3">
+                                <label className="relative inline-flex items-center cursor-pointer">
+                                    <input 
+                                        type="checkbox" 
+                                        className="sr-only peer" 
+                                        checked={syncMikrotik}
+                                        onChange={(e) => setSyncMikrotik(e.target.checked)}
+                                    />
+                                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-500"></div>
+                                </label>
+                                <div>
+                                    <span className="text-xs font-bold text-slate-700 block">Sinkronisasi Otomatis</span>
+                                    <span className="text-[10px] text-slate-500">Otomatis sync ke Mikrotik saat disimpan</span>
+                                </div>
+                            </div>
+                            
+                            <div className="flex gap-2">
+                                <button
+                                    type="button"
+                                    onClick={handleCheckExistsMikrotik}
+                                    className="px-4 py-2 bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-600 rounded-lg text-xs font-bold transition active:scale-95 flex items-center justify-center gap-2"
+                                >
+                                    Cari Akun
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleCheckMikrotik}
+                                    className="px-4 py-2 bg-white border border-slate-200 hover:border-sky-300 hover:bg-sky-50 text-sky-600 rounded-lg text-xs font-bold transition active:scale-95 flex items-center justify-center gap-2"
+                                >
+                                    <ArrowsClockwise size={14} weight="bold" />
+                                    Push PPPoE
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -546,66 +928,83 @@ const ClientFormScreen: React.FC = () => {
                     <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-3">
                             <h3 className="font-bold text-slate-800 flex items-center gap-1.5 text-sm">
-                                <MapPin size={18} className="text-indigo-500" /> Koordinat Geografis & Peta
+                                <MapPin size={18} className="text-indigo-500" /> Koordinat Geografis & Peta (Opsional)
                             </h3>
-                            <button
-                                type="button"
-                                onClick={handleGetLocation}
-                                className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 px-3.5 py-1.5 rounded-xl text-[10px] font-bold flex items-center gap-1.5 transition active:scale-95 animate-pulse"
-                            >
-                                <MapPin size={14} weight="fill" /> Gunakan Lokasi GPS Saya Saat Ini
-                            </button>
+                            <label className="relative inline-flex items-center cursor-pointer">
+                                <input 
+                                    type="checkbox" 
+                                    className="sr-only peer" 
+                                    checked={useMap}
+                                    onChange={(e) => {
+                                        setUseMap(e.target.checked);
+                                        if (!e.target.checked) {
+                                            setLatitude(0);
+                                            setLongitude(0);
+                                            setHasSetLocation(false);
+                                        }
+                                    }}
+                                />
+                                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-500"></div>
+                                <span className="ml-3 text-xs font-bold text-slate-700">Tampilkan Peta</span>
+                            </label>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Latitude (Garis Lintang)</label>
-                                <input 
-                                    type="number" 
-                                    step="any"
-                                    value={latitude}
-                                    onChange={(e) => setLatitude(parseFloat(e.target.value) || 0)}
-                                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 font-semibold text-slate-700"
-                                />
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Longitude (Garis Bujur)</label>
-                                <input 
-                                    type="number" 
-                                    step="any"
-                                    value={longitude}
-                                    onChange={(e) => setLongitude(parseFloat(e.target.value) || 0)}
-                                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 font-semibold text-slate-700"
-                                />
-                            </div>
-                        </div>
+                        {useMap && (
+                            <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-300">
+                                <div className="flex justify-end">
+                                    <button
+                                        type="button"
+                                        onClick={handleGetLocation}
+                                        className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 px-3.5 py-1.5 rounded-xl text-[10px] font-bold flex items-center gap-1.5 transition active:scale-95 animate-pulse"
+                                    >
+                                        <MapPin size={14} weight="fill" /> Gunakan Lokasi GPS Saya Saat Ini
+                                    </button>
+                                </div>
 
-                        {/* Interactive Leaflet Map */}
-                        <div className="h-64 w-full rounded-2xl overflow-hidden border border-slate-200 shadow-inner z-10 relative">
-                            <MapContainer 
-                                center={mapCenter} 
-                                zoom={hasSetLocation ? 15 : 13} 
-                                style={{ height: '100%', width: '100%' }}
-                            >
-                                <TileLayer
-                                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                                />
-                                {hasSetLocation && latitude !== 0 && longitude !== 0 && (
-                                    <Marker position={[latitude, longitude]} />
-                                )}
-                                <MapClickListener onSelect={handleLocationSelect} />
-                                <ChangeMapView center={mapCenter} />
-                            </MapContainer>
-                            <div className="absolute bottom-2 left-2 z-[400] bg-slate-900/80 text-white text-[9px] px-2 py-1 rounded backdrop-blur-sm pointer-events-none font-bold">
-                                {hasSetLocation 
-                                    ? `📍 Koordinat: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
-                                    : '💡 Klik sembarang titik di peta untuk menentukan lokasi rumah pelanggan'}
-                            </div>
-                        </div>
-                        {!hasSetLocation && (
-                            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-700 font-semibold flex items-center gap-2">
-                                <span>⚠️</span> Lokasi belum ditentukan. Klik peta atau gunakan GPS untuk memetakan lokasi rumah. Jika dibiarkan kosong, pelanggan tidak akan muncul di peta jaringan.
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1.5">
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Latitude (Garis Lintang)</label>
+                                        <input 
+                                            type="number" 
+                                            step="any"
+                                            value={latitude}
+                                            onChange={(e) => setLatitude(parseFloat(e.target.value) || 0)}
+                                            className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 font-semibold text-slate-700"
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Longitude (Garis Bujur)</label>
+                                        <input 
+                                            type="number" 
+                                            step="any"
+                                            value={longitude}
+                                            onChange={(e) => setLongitude(parseFloat(e.target.value) || 0)}
+                                            className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 font-semibold text-slate-700"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Interactive Leaflet Map */}
+                                <div className="h-64 w-full rounded-2xl overflow-hidden border border-slate-200 shadow-inner z-10 relative">
+                                    <MapContainer 
+                                        center={mapCenter} 
+                                        zoom={hasSetLocation ? 15 : 13} 
+                                        style={{ height: '100%', width: '100%' }}
+                                    >
+                                        <TileLayer
+                                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                                        />
+                                        {hasSetLocation && latitude !== 0 && longitude !== 0 && (
+                                            <Marker position={[latitude, longitude]} />
+                                        )}
+                                        <MapClickListener onSelect={handleLocationSelect} />
+                                        <ChangeMapView center={mapCenter} />
+                                    </MapContainer>
+                                    <div className="absolute bottom-2 left-2 z-[400] bg-slate-900/80 text-white text-[9px] px-2 py-1 rounded backdrop-blur-sm pointer-events-none font-bold">
+                                        Klik pada peta untuk menyesuaikan lokasi
+                                    </div>
+                                </div>
                             </div>
                         )}
                     </div>

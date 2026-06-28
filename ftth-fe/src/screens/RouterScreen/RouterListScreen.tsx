@@ -11,6 +11,7 @@ import {
     WarningCircle,
     CheckCircle
 } from "@phosphor-icons/react";
+import PaginationControl from '../../components/ui/PaginationControl';
 
 interface RouterData {
     router_id: string;
@@ -29,6 +30,20 @@ const RouterListScreen: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [error, setError] = useState('');
     const navigate = useNavigate();
+
+    // Pagination State
+    const [page, setPage] = useState<number>(1);
+    const [limit, setLimit] = useState<number>(10);
+
+    // Get User Role
+    const token = localStorage.getItem('jwt_token') || '';
+    let userRole = 1;
+    try {
+        if (token) {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            userRole = Number(payload.role) || 1;
+        }
+    } catch (e) {}
 
     const fetchRouters = async () => {
         setIsLoading(true);
@@ -92,6 +107,16 @@ const handleDelete = async (id: string) => {
         router.router_address.includes(searchTerm)
     );
 
+    // Client-side Pagination Logic
+    const totalItems = filteredRouters.length;
+    const totalPages = Math.ceil(totalItems / limit) || 1;
+    const paginatedRouters = filteredRouters.slice((page - 1) * limit, page * limit);
+
+    // Reset ke halaman 1 jika filter berubah
+    useEffect(() => {
+        setPage(1);
+    }, [searchTerm]);
+
     return (
         <div className="space-y-6">
             {/* Header & Actions */}
@@ -104,12 +129,14 @@ const handleDelete = async (id: string) => {
                     <p className="text-xs text-slate-300 mt-1">Kelola integrasi konektivitas perangkat router, status koneksi API/SSH, serta interface monitoring traffic jaringan secara instan.</p>
                 </div>
                 <div>
-                    <button 
-                        onClick={() => navigate('/admin/routers/add')}
-                        className="bg-sky-500 hover:bg-sky-600 text-white px-5 py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 active:scale-95 shadow-md shadow-sky-500/25 transition-all duration-300"
-                    >
-                        <Plus size={16} weight="bold" /> Tambah Router Baru
-                    </button>
+                    {userRole === 1 && (
+                        <button 
+                            onClick={() => navigate('/admin/routers/add')}
+                            className="bg-sky-500 hover:bg-sky-600 text-white px-5 py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 active:scale-95 shadow-md shadow-sky-500/25 transition-all duration-300"
+                        >
+                            <Plus size={16} weight="bold" /> Tambah Router Baru
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -144,11 +171,11 @@ const handleDelete = async (id: string) => {
                                         <th className="px-6 py-4">IP Address</th>
                                         <th className="px-6 py-4">Tipe & Protokol</th>
                                         <th className="px-6 py-4">Status Perangkat</th>
-                                        <th className="px-6 py-4 text-center">Aksi</th>
+                                        {userRole === 1 && <th className="px-6 py-4 text-center">Aksi</th>}
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-50">
-                                    {filteredRouters.map((router) => (
+                                    {paginatedRouters.map((router) => (
                                         <tr key={router.router_id} className="hover:bg-slate-50/50 transition-colors">
                                             <td className="px-6 py-4 font-bold text-slate-800">
                                                 <div className="flex items-center gap-3">
@@ -183,24 +210,26 @@ const handleDelete = async (id: string) => {
                                                     {router.router_status}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex items-center justify-center gap-1.5">
-                                                    <button 
-                                                        onClick={() => navigate(`/admin/routers/edit/${router.router_id}`)}
-                                                        className="p-2 bg-slate-50 border border-slate-200 hover:border-sky-300 hover:bg-sky-50 text-slate-500 hover:text-sky-600 rounded-xl transition active:scale-95"
-                                                        title="Edit Parameter Router"
-                                                    >
-                                                        <PencilSimple size={15} weight="bold" />
-                                                    </button>
-                                                    <button 
-                                                        onClick={() => handleDelete(router.router_id)}
-                                                        className="p-2 bg-slate-50 border border-slate-200 hover:border-rose-300 hover:bg-rose-50 text-slate-500 hover:text-rose-600 rounded-xl transition active:scale-95"
-                                                        title="Hapus Router"
-                                                    >
-                                                        <Trash size={15} weight="bold" />
-                                                    </button>
-                                                </div>
-                                            </td>
+                                            {userRole === 1 && (
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-center justify-center gap-1.5">
+                                                        <button 
+                                                            onClick={() => navigate(`/admin/routers/edit/${router.router_id}`)}
+                                                            className="p-2 bg-slate-50 border border-slate-200 hover:border-sky-300 hover:bg-sky-50 text-slate-500 hover:text-sky-600 rounded-xl transition active:scale-95"
+                                                            title="Edit Parameter Router"
+                                                        >
+                                                            <PencilSimple size={15} weight="bold" />
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => handleDelete(router.router_id)}
+                                                            className="p-2 bg-slate-50 border border-slate-200 hover:border-rose-300 hover:bg-rose-50 text-slate-500 hover:text-rose-600 rounded-xl transition active:scale-95"
+                                                            title="Hapus Router"
+                                                        >
+                                                            <Trash size={15} weight="bold" />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            )}
                                         </tr>
                                     ))}
                                 </tbody>
@@ -209,7 +238,7 @@ const handleDelete = async (id: string) => {
 
                         {/* --- MOBILE CARD VIEW --- */}
                         <div className="md:hidden divide-y divide-slate-100">
-                            {filteredRouters.map((router) => (
+                            {paginatedRouters.map((router) => (
                                 <div key={router.router_id} className="p-5 space-y-4 hover:bg-slate-50/30 transition">
                                     <div className="flex items-start justify-between gap-3">
                                         <div className="flex items-center gap-3">
@@ -231,18 +260,22 @@ const handleDelete = async (id: string) => {
                                             {router.router_type} • {router.router_remote_type}
                                         </div>
                                         <div className="flex gap-2.5">
-                                            <button 
-                                                onClick={() => navigate(`/admin/routers/edit/${router.router_id}`)}
-                                                className="px-3.5 py-2 text-[10px] font-bold text-sky-700 bg-sky-50 border border-sky-100 rounded-xl active:scale-95 transition"
-                                            >
-                                                Edit
-                                            </button>
-                                            <button 
-                                                onClick={() => handleDelete(router.router_id)}
-                                                className="px-3.5 py-2 text-[10px] font-bold text-red-700 bg-red-50 border border-red-100 rounded-xl active:scale-95 transition"
-                                            >
-                                                Hapus
-                                            </button>
+                                            {userRole === 1 && (
+                                                <>
+                                                    <button 
+                                                        onClick={() => navigate(`/admin/routers/edit/${router.router_id}`)}
+                                                        className="px-3.5 py-2 text-[10px] font-bold text-sky-700 bg-sky-50 border border-sky-100 rounded-xl active:scale-95 transition"
+                                                    >
+                                                        Edit
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => handleDelete(router.router_id)}
+                                                        className="px-3.5 py-2 text-[10px] font-bold text-red-700 bg-red-50 border border-red-100 rounded-xl active:scale-95 transition"
+                                                    >
+                                                        Hapus
+                                                    </button>
+                                                </>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -251,6 +284,18 @@ const handleDelete = async (id: string) => {
                     </>
                 )}
             </div>
+
+            {/* Pagination UI */}
+            {totalItems > limit && (
+                <PaginationControl
+                    currentPage={page}
+                    totalPages={totalPages}
+                    totalItems={totalItems}
+                    itemsPerPage={limit}
+                    onPageChange={setPage}
+                    onLimitChange={setLimit}
+                />
+            )}
         </div>
     );
 };

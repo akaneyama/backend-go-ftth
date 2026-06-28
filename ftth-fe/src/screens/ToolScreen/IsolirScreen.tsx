@@ -57,6 +57,11 @@ const IsolirScreen: React.FC = () => {
     const [previewTargets, setPreviewTargets] = useState<string[] | null>(null);
     const [taskId, setTaskId] = useState<string | null>(null);
     const [taskData, setTaskData] = useState<TaskData | null>(null);
+
+    // PPPoE Actions
+    const [pppoeAction, setPppoeAction] = useState<string>('disable_secret');
+    const [pppoeProfile, setPppoeProfile] = useState<string>('');
+    const [pppProfiles, setPppProfiles] = useState<string[]>([]);
     
     const fileInputRef = useRef<HTMLInputElement>(null);
     const pollIntervalRef = useRef<any>(null);
@@ -85,6 +90,25 @@ const IsolirScreen: React.FC = () => {
             if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
         };
     }, []);
+
+    useEffect(() => {
+        if (selectedRouterId && routerMode === 'selected') {
+            const fetchProfiles = async () => {
+                try {
+                    const res = await api.get(`/api/routers/${selectedRouterId}/ppp-profiles`);
+                    if (res.data.status === 'success') {
+                        setPppProfiles(res.data.data || []);
+                        if (res.data.data && res.data.data.length > 0 && !pppoeProfile) {
+                            setPppoeProfile(res.data.data[0]);
+                        }
+                    }
+                } catch (err) {
+                    console.error("Gagal memuat list ppp profile:", err);
+                }
+            };
+            fetchProfiles();
+        }
+    }, [selectedRouterId, routerMode]);
 
     // Drag-and-Drop Handlers
     const handleDrag = (e: React.DragEvent) => {
@@ -153,6 +177,13 @@ const IsolirScreen: React.FC = () => {
             }
         }
 
+        if (targetType === 'auto' || targetType === 'pppoe') {
+            if (pppoeAction === 'change_profile' && !pppoeProfile.trim()) {
+                Swal.fire('Input Salah', 'Nama Profile PPPoE wajib diisi/dipilih jika mode Ganti Profile diaktifkan.', 'warning');
+                return;
+            }
+        }
+
         setUploading(true);
         try {
             const payload = {
@@ -165,7 +196,9 @@ const IsolirScreen: React.FC = () => {
                 manual_password: manualPassword,
                 manual_use_ssl: manualUseSSL,
                 target_type: targetType,
-                prefix_rules: routerMode === 'prefix' ? prefixRules.filter(r => r.prefix.trim() !== '' && r.router_id !== '') : []
+                prefix_rules: routerMode === 'prefix' ? prefixRules.filter(r => r.prefix.trim() !== '' && r.router_id !== '') : [],
+                pppoe_action: pppoeAction,
+                pppoe_profile: pppoeProfile
             };
 
             const res = await api.post('/api/tools/isolir/process', payload);
@@ -652,6 +685,71 @@ const IsolirScreen: React.FC = () => {
                                         </span>
                                     )}
                                 </div>
+
+                                {/* PPPoE Isolir Method (Only if targetType is 'auto' or 'pppoe') */}
+                                {(targetType === 'auto' || targetType === 'pppoe') && (
+                                    <div className="mt-4 p-4 border border-slate-200 rounded-2xl animate-fade-in bg-white">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <span className="p-1.5 bg-sky-50 text-sky-600 rounded-lg"><Prohibit size={18} weight="bold" /></span>
+                                            <h3 className="font-bold text-slate-800 text-sm">Metode Isolir PPPoE</h3>
+                                        </div>
+                                        
+                                        <div className="flex flex-col sm:flex-row gap-4 mb-4">
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                                <input 
+                                                    type="radio" 
+                                                    name="pppoe_action" 
+                                                    value="disable_secret" 
+                                                    checked={pppoeAction === 'disable_secret'}
+                                                    onChange={() => setPppoeAction('disable_secret')}
+                                                    className="w-4 h-4 text-sky-600 border-slate-300 focus:ring-sky-500"
+                                                />
+                                                <span className="text-sm font-semibold text-slate-700">Disable Secret</span>
+                                            </label>
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                                <input 
+                                                    type="radio" 
+                                                    name="pppoe_action" 
+                                                    value="change_profile" 
+                                                    checked={pppoeAction === 'change_profile'}
+                                                    onChange={() => setPppoeAction('change_profile')}
+                                                    className="w-4 h-4 text-sky-600 border-slate-300 focus:ring-sky-500"
+                                                />
+                                                <span className="text-sm font-semibold text-slate-700">Ganti Profile ke Isolir</span>
+                                            </label>
+                                        </div>
+
+                                        {pppoeAction === 'change_profile' && (
+                                            <div className="animate-fade-in border-t border-slate-100 pt-3 mt-2">
+                                                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Pilih / Ketik Nama Profile Isolir</label>
+                                                {routerMode === 'selected' && pppProfiles.length > 0 ? (
+                                                    <select
+                                                        value={pppoeProfile}
+                                                        onChange={(e) => setPppoeProfile(e.target.value)}
+                                                        className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 cursor-pointer font-semibold text-slate-700"
+                                                    >
+                                                        {pppProfiles.map(p => (
+                                                            <option key={p} value={p}>{p}</option>
+                                                        ))}
+                                                    </select>
+                                                ) : (
+                                                    <input 
+                                                        type="text"
+                                                        placeholder="Contoh: profile-isolir"
+                                                        value={pppoeProfile}
+                                                        onChange={(e) => setPppoeProfile(e.target.value)}
+                                                        className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 font-semibold text-slate-700"
+                                                    />
+                                                )}
+                                                <p className="text-[10px] text-slate-400 mt-1.5">
+                                                    {routerMode === 'selected' 
+                                                        ? "Profile PPPoE dimuat langsung dari router yang dipilih." 
+                                                        : "Ketik nama profile yang sudah ada di router (case-sensitive)."}
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         )}
 

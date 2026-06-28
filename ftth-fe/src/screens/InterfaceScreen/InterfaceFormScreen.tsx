@@ -291,8 +291,8 @@ const InterfaceFormScreen: React.FC = () => {
                                     <span className="font-semibold text-slate-700">Exclude from Monitoring</span>
                                 </label>
                                 <p className="text-xs text-slate-500 leading-relaxed">
-                                    Jika dicentang, interface ini <b>tidak akan dipantau</b> (skip ping & traffic check). 
-                                    Berguna untuk interface yang sedang maintenance atau tidak prioritas.
+                                    Jika dicentang, interface ini <b>tidak akan di-ping</b> oleh sistem (skip ping check). 
+                                    Berguna untuk interface maintenance agar tidak memicu notifikasi Telegram, namun <b>traffic (bandwidth) tetap akan dipantau</b>.
                                 </p>
                             </div>
                         </div>

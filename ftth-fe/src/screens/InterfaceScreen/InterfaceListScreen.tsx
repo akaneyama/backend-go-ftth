@@ -9,6 +9,7 @@ import {
     ArrowsLeftRight,
 } from "@phosphor-icons/react";
 import Swal from 'sweetalert2';
+import PaginationControl from '../../components/ui/PaginationControl';
 
 interface InterfaceData {
     interface_id: number;
@@ -26,6 +27,20 @@ const InterfaceListScreen: React.FC = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const navigate = useNavigate();
+
+    // Pagination State
+    const [page, setPage] = useState<number>(1);
+    const [limit, setLimit] = useState<number>(10);
+
+    // Get User Role
+    const token = localStorage.getItem('jwt_token') || '';
+    let userRole = 1;
+    try {
+        if (token) {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            userRole = Number(payload.role) || 1;
+        }
+    } catch (e) {}
 
     const fetchInterfaces = async () => {
         setIsLoading(true);
@@ -72,6 +87,16 @@ const InterfaceListScreen: React.FC = () => {
         item.Router?.router_type.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    // Client-side Pagination Logic
+    const totalItems = filteredData.length;
+    const totalPages = Math.ceil(totalItems / limit) || 1;
+    const paginatedData = filteredData.slice((page - 1) * limit, page * limit);
+
+    // Reset ke halaman 1 jika filter berubah
+    useEffect(() => {
+        setPage(1);
+    }, [searchTerm]);
+
     return (
         <div className="space-y-6">
             {/* Header Area */}
@@ -84,12 +109,14 @@ const InterfaceListScreen: React.FC = () => {
                     <p className="text-xs text-slate-300 mt-1">Kelola pemantauan interface fisik/virtual pada router Mikrotik untuk kalkulasi grafik penggunaan bandwidth secara dinamis.</p>
                 </div>
                 <div>
-                    <button 
-                        onClick={() => navigate('/admin/interfaces/add')}
-                        className="bg-sky-500 hover:bg-sky-600 text-white px-5 py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 active:scale-95 shadow-md shadow-sky-500/25 transition-all duration-300"
-                    >
-                        <Plus size={16} weight="bold" /> Tambah Monitoring
-                    </button>
+                    {userRole === 1 && (
+                        <button 
+                            onClick={() => navigate('/admin/interfaces/add')}
+                            className="bg-sky-500 hover:bg-sky-600 text-white px-5 py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 active:scale-95 shadow-md shadow-sky-500/25 transition-all duration-300"
+                        >
+                            <Plus size={16} weight="bold" /> Tambah Monitoring
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -121,11 +148,11 @@ const InterfaceListScreen: React.FC = () => {
                                         <th className="px-6 py-4">Nama Interface</th>
                                         <th className="px-6 py-4">Router Induk</th>
                                         <th className="px-6 py-4">IP Router</th>
-                                        <th className="px-6 py-4 text-center">Aksi</th>
+                                        {userRole === 1 && <th className="px-6 py-4 text-center">Aksi</th>}
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-50">
-                                    {filteredData.map((item) => (
+                                    {paginatedData.map((item) => (
                                         <tr key={item.interface_id} className="hover:bg-slate-50/50 transition-colors">
                                             <td className="px-6 py-4 font-bold text-slate-800">
                                                 <div className="flex items-center gap-3">
@@ -143,24 +170,26 @@ const InterfaceListScreen: React.FC = () => {
                                                     {item.Router?.router_address || '-'}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex items-center justify-center gap-1.5">
-                                                    <button 
-                                                        onClick={() => navigate(`/admin/interfaces/edit/${item.interface_id}`)}
-                                                        className="p-2 bg-slate-50 border border-slate-200 hover:border-sky-300 hover:bg-sky-50 text-slate-500 hover:text-sky-600 rounded-xl transition active:scale-95"
-                                                        title="Edit Parameter Interface"
-                                                    >
-                                                        <PencilSimple size={15} weight="bold" />
-                                                    </button>
-                                                    <button 
-                                                        onClick={() => handleDelete(item.interface_id)}
-                                                        className="p-2 bg-slate-50 border border-slate-200 hover:border-rose-300 hover:bg-rose-50 text-slate-500 hover:text-rose-600 rounded-xl transition active:scale-95"
-                                                        title="Hapus Interface"
-                                                    >
-                                                        <Trash size={15} weight="bold" />
-                                                    </button>
-                                                </div>
-                                            </td>
+                                            {userRole === 1 && (
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-center justify-center gap-1.5">
+                                                        <button 
+                                                            onClick={() => navigate(`/admin/interfaces/edit/${item.interface_id}`)}
+                                                            className="p-2 bg-slate-50 border border-slate-200 hover:border-sky-300 hover:bg-sky-50 text-slate-500 hover:text-sky-600 rounded-xl transition active:scale-95"
+                                                            title="Edit Parameter Interface"
+                                                        >
+                                                            <PencilSimple size={15} weight="bold" />
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => handleDelete(item.interface_id)}
+                                                            className="p-2 bg-slate-50 border border-slate-200 hover:border-rose-300 hover:bg-rose-50 text-slate-500 hover:text-rose-600 rounded-xl transition active:scale-95"
+                                                            title="Hapus Interface"
+                                                        >
+                                                            <Trash size={15} weight="bold" />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            )}
                                         </tr>
                                     ))}
                                 </tbody>
@@ -169,7 +198,7 @@ const InterfaceListScreen: React.FC = () => {
 
                         {/* --- MOBILE CARD VIEW --- */}
                         <div className="md:hidden divide-y divide-slate-100">
-                            {filteredData.map((item) => (
+                            {paginatedData.map((item) => (
                                 <div key={item.interface_id} className="p-5 space-y-4 hover:bg-slate-50/30 transition">
                                     <div className="flex items-start justify-between gap-3">
                                         <div className="flex items-center gap-3">
@@ -187,18 +216,22 @@ const InterfaceListScreen: React.FC = () => {
                                             Router Induk: <span className="font-bold text-slate-700">{item.Router?.router_name || '-'}</span>
                                         </div>
                                         <div className="flex gap-2.5">
-                                            <button 
-                                                onClick={() => navigate(`/admin/interfaces/edit/${item.interface_id}`)}
-                                                className="px-3.5 py-2 text-[10px] font-bold text-sky-700 bg-sky-50 border border-sky-100 rounded-xl active:scale-95 transition"
-                                            >
-                                                Edit
-                                            </button>
-                                            <button 
-                                                onClick={() => handleDelete(item.interface_id)}
-                                                className="px-3.5 py-2 text-[10px] font-bold text-red-700 bg-red-50 border border-red-100 rounded-xl active:scale-95 transition"
-                                            >
-                                                Hapus
-                                            </button>
+                                            {userRole === 1 && (
+                                                <>
+                                                    <button 
+                                                        onClick={() => navigate(`/admin/interfaces/edit/${item.interface_id}`)}
+                                                        className="px-3.5 py-2 text-[10px] font-bold text-sky-700 bg-sky-50 border border-sky-100 rounded-xl active:scale-95 transition"
+                                                    >
+                                                        Edit
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => handleDelete(item.interface_id)}
+                                                        className="px-3.5 py-2 text-[10px] font-bold text-red-700 bg-red-50 border border-red-100 rounded-xl active:scale-95 transition"
+                                                    >
+                                                        Hapus
+                                                    </button>
+                                                </>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -207,6 +240,18 @@ const InterfaceListScreen: React.FC = () => {
                     </>
                 )}
             </div>
+
+            {/* Pagination UI */}
+            {totalItems > limit && (
+                <PaginationControl
+                    currentPage={page}
+                    totalPages={totalPages}
+                    totalItems={totalItems}
+                    itemsPerPage={limit}
+                    onPageChange={setPage}
+                    onLimitChange={setLimit}
+                />
+            )}
         </div>
     );
 };

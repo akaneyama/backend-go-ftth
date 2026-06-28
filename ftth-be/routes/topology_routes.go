@@ -11,13 +11,13 @@ func TopologyRoutes(app *fiber.App) {
 	api := app.Group("/api")
 
 	// GET Topology (untuk peta)
-	api.Get("/topology", middleware.JWTProtected(), controllers.GetNetworkTopology)
+	api.Get("/topology", middleware.JWTProtected(), middleware.RoleAdminOrTeknisi(), controllers.GetNetworkTopology)
 
 	// GET Topology Table (untuk halaman tabel & ekspor Excel)
-	api.Get("/topology/table", middleware.JWTProtected(), controllers.GetTopologyTable)
+	api.Get("/topology/table", middleware.JWTProtected(), middleware.RoleAdminOrTeknisi(), controllers.GetTopologyTable)
 
 	// SEARCH NODES
-	api.Get("/nodes/search", middleware.JWTProtected(), controllers.SearchNetworkNodes)
+	api.Get("/nodes/search", middleware.JWTProtected(), middleware.RoleAdminOrTeknisi(), controllers.SearchNetworkNodes)
 
 	// MANAGE NODES
 	api.Post("/nodes", middleware.JWTProtected(), middleware.RoleAdmin(), controllers.AddNetworkNode)
@@ -34,10 +34,10 @@ func TopologyRoutes(app *fiber.App) {
 	// BATCH ISOLIR TOOLS
 	api.Post("/tools/isolir/upload", middleware.JWTProtected(), middleware.RoleAdmin(), controllers.ToolIsolirUpload)
 	api.Post("/tools/isolir/process", middleware.JWTProtected(), middleware.RoleAdmin(), controllers.ToolIsolirProcess)
-	api.Get("/tools/isolir/status/:task_id", middleware.JWTProtected(), controllers.ToolIsolirStatus)
-	api.Get("/tools/isolir/template", middleware.JWTProtected(), controllers.ToolIsolirTemplate)
+	api.Get("/tools/isolir/status/:task_id", middleware.JWTProtected(), middleware.RoleAdmin(), controllers.ToolIsolirStatus)
+	api.Get("/tools/isolir/template", middleware.JWTProtected(), middleware.RoleAdmin(), controllers.ToolIsolirTemplate)
 
 	// DASHBOARD INFO
-	api.Get("/dashboard/stats", middleware.JWTProtected(), controllers.GetDashboardStats)
-	api.Get("/dashboard/logs", middleware.JWTProtected(), controllers.GetDashboardLogs)
+	api.Get("/dashboard/stats", middleware.JWTProtected(), middleware.RoleAdminOrTeknisi(), controllers.GetDashboardStats)
+	api.Get("/dashboard/logs", middleware.JWTProtected(), middleware.RoleAdminOrTeknisi(), controllers.GetDashboardLogs)
 }

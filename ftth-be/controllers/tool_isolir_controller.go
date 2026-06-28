@@ -48,6 +48,8 @@ type IsolirRouterParams struct {
 	ManualUseSSL   bool         `json:"manual_use_ssl"`
 	TargetType     string       `json:"target_type"` // auto, hotspot, pppoe
 	PrefixRules    []PrefixRule `json:"prefix_rules"`
+	PPPoEAction    string       `json:"pppoe_action"`
+	PPPoEProfile   string       `json:"pppoe_profile"`
 }
 
 type PrefixRule struct {
@@ -110,9 +112,6 @@ func ToolIsolirUpload(c *fiber.Ctx) error {
 		return utils.Failed(c, "Data Excel minimal harus memiliki baris header dan 1 baris data.")
 	}
 
-	// Cari indeks kolom "PPOE"
-	// Biasanya di baris ke-1 atau ke-2 (header=1 di python berarti index ke-1, baris ke-2)
-	// Kita scan baris 0 sampai 2 untuk menemukan string "PPOE" atau "PPPOE"
 	ppoeColIdx := -1
 	headerRowFound := -1
 
@@ -170,6 +169,8 @@ type IsolirProcessReq struct {
 	ManualUseSSL   bool         `json:"manual_use_ssl"`
 	TargetType     string       `json:"target_type"`
 	PrefixRules    []PrefixRule `json:"prefix_rules"`
+	PPPoEAction    string       `json:"pppoe_action"`
+	PPPoEProfile   string       `json:"pppoe_profile"`
 }
 
 // ToolIsolirProcess memulai isolir berdasarkan array targets yang dikirim
@@ -193,6 +194,8 @@ func ToolIsolirProcess(c *fiber.Ctx) error {
 		ManualUseSSL:   req.ManualUseSSL,
 		TargetType:     req.TargetType,
 		PrefixRules:    req.PrefixRules,
+		PPPoEAction:    req.PPPoEAction,
+		PPPoEProfile:   req.PPPoEProfile,
 	}
 
 	// Buat Task baru
@@ -234,7 +237,6 @@ func ToolIsolirStatus(c *fiber.Ctx) error {
 	return utils.Success(c, "Detail status isolir", task)
 }
 
-// runIsolirTask memproses isolir per target di background
 func runIsolirTask(taskID string, targets []string, params IsolirRouterParams) {
 	tasksMu.Lock()
 	task, exists := tasks[taskID]
@@ -247,7 +249,6 @@ func runIsolirTask(taskID string, targets []string, params IsolirRouterParams) {
 		return
 	}
 
-	// Persiapkan daftar router yang akan digunakan
 	var routers []models.Router
 
 	if params.RouterMode == "manual" {
@@ -482,23 +483,46 @@ func runIsolirTask(taskID string, targets []string, params IsolirRouterParams) {
 					}
 					disabled := secret["disabled"] == "true"
 
-					if disabled {
-						result.Status = "SKIP"
-						result.Message = fmt.Sprintf("[SKIP] PPPoE sudah diisolir sebelumnya di Router %s: %s (%s)", router.RouterName, comment, secretName)
-					} else {
-						_, errSet := client.Run("/ppp/secret/set", "=.id="+secretID, "=disabled=yes")
-						if errSet != nil {
-							result.Status = "FAILED"
-							result.Message = fmt.Sprintf("[GAGAL] Gagal menonaktifkan PPPoE di %s: %v", router.RouterName, errSet)
+					if params.PPPoEAction == "change_profile" {
+						if secret["profile"] == params.PPPoEProfile {
+							result.Status = "SKIP"
+							result.Message = fmt.Sprintf("[SKIP] PPPoE sudah diisolir sebelumnya (Profile: %s) di Router %s: %s (%s)", params.PPPoEProfile, router.RouterName, comment, secretName)
 						} else {
-							result.Status = "SUCCESS"
-							result.Message = fmt.Sprintf("[OK] Berhasil isolir PPPoE di %s: %s (%s)", router.RouterName, comment, secretName)
-
-							// Putuskan koneksi aktif jika ada agar efek instan terasa!
-							activeReply, errAct := client.Run("/ppp/active/print", "?name="+secretName)
-							if errAct == nil && len(activeReply.Re) > 0 {
-								actID := activeReply.Re[0].Map[".id"]
-								client.Run("/ppp/active/remove", "=.id="+actID)
+							_, errSet := client.Run("/ppp/secret/set", "=.id="+secretID, "=profile="+params.PPPoEProfile)
+							if errSet != nil {
+								result.Status = "FAILED"
+								result.Message = fmt.Sprintf("[GAGAL] Gagal mengganti profile PPPoE di %s: %v", router.RouterName, errSet)
+							} else {
+								result.Status = "SUCCESS"
+								result.Message = fmt.Sprintf("[OK] Berhasil isolir PPPoE (Ganti Profile ke %s) di %s: %s (%s)", params.PPPoEProfile, router.RouterName, comment, secretName)
+	
+								// Putuskan koneksi aktif jika ada agar efek instan terasa!
+								activeReply, errAct := client.Run("/ppp/active/print", "?name="+secretName)
+								if errAct == nil && len(activeReply.Re) > 0 {
+									actID := activeReply.Re[0].Map[".id"]
+									client.Run("/ppp/active/remove", "=.id="+actID)
+								}
+							}
+						}
+					} else {
+						if disabled {
+							result.Status = "SKIP"
+							result.Message = fmt.Sprintf("[SKIP] PPPoE sudah diisolir sebelumnya di Router %s: %s (%s)", router.RouterName, comment, secretName)
+						} else {
+							_, errSet := client.Run("/ppp/secret/set", "=.id="+secretID, "=disabled=yes")
+							if errSet != nil {
+								result.Status = "FAILED"
+								result.Message = fmt.Sprintf("[GAGAL] Gagal menonaktifkan PPPoE di %s: %v", router.RouterName, errSet)
+							} else {
+								result.Status = "SUCCESS"
+								result.Message = fmt.Sprintf("[OK] Berhasil isolir PPPoE di %s: %s (%s)", router.RouterName, comment, secretName)
+	
+								// Putuskan koneksi aktif jika ada agar efek instan terasa!
+								activeReply, errAct := client.Run("/ppp/active/print", "?name="+secretName)
+								if errAct == nil && len(activeReply.Re) > 0 {
+									actID := activeReply.Re[0].Map[".id"]
+									client.Run("/ppp/active/remove", "=.id="+actID)
+								}
 							}
 						}
 					}
@@ -632,4 +656,3 @@ func ToolIsolirTemplate(c *fiber.Ctx) error {
 	c.Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 	return c.Send(buffer.Bytes())
 }
-

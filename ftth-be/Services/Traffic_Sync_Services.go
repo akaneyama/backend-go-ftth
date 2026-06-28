@@ -53,9 +53,7 @@ func RunTrafficSyncJob() error {
 		}
 
 		for _, targetIface := range ifaceList {
-			// if targetIface.IsExcluded == 1 {
-			// 	continue
-			// }
+			// [FIX] Traffic selalu direkam meskipun IsExcluded = 1 (hanya Ping yang diskip)
 			rx, tx, err := getInterfaceTraffic(client, targetIface.InterfaceName)
 			if err != nil {
 				continue
@@ -132,7 +130,7 @@ func RunPingCheckJob() error {
 
 		for _, targetIface := range ifaceList {
 			if targetIface.IsExcluded == 1 {
-				// Opsional: Masukkan ke report sebagai "Skipped" atau abaikan total
+				// [FIX] Ping dilewati sesuai fitur Exclude from Monitoring
 				// reportLines = append(reportLines, fmt.Sprintf("⏸️ %s: Excluded", targetIface.InterfaceName))
 				continue
 			}

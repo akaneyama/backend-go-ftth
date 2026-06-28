@@ -23,6 +23,7 @@ import ClientFormScreen from '../screens/ClientScreen/ClientFormScreen';
 import ODPListScreen from '../screens/ODPScreen/ODPListScreen';
 import MappingListScreen from '../screens/MapScreen/MappingListScreen';
 import GenieACSScreen from '../screens/GenieACSScreen/GenieACSScreen';
+import IPPoolScreen from '../screens/IPPoolScreen/IPPoolScreen';
 
 function Router(){
     return (
@@ -56,6 +57,7 @@ function Router(){
                 <Route path="odp" element={<ODPListScreen />} />
                 <Route path="network-mapping" element={<MappingListScreen />} />
                 <Route path="genie-acs" element={<GenieACSScreen />} />
+                <Route path="ippool" element={<IPPoolScreen />} />
             </Route>
 
         </Routes>

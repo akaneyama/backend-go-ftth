@@ -54,6 +54,16 @@ const MappingListScreen: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
 
+    // Get User Role
+    const token = localStorage.getItem('jwt_token') || '';
+    let userRole = 1;
+    try {
+        if (token) {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            userRole = Number(payload.role) || 1;
+        }
+    } catch (e) {}
+
     // Modals
     const [modalOpen, setModalOpen] = useState(false);
     const [isEdit, setIsEdit] = useState(false);
@@ -291,12 +301,14 @@ const MappingListScreen: React.FC = () => {
                     >
                         <DownloadSimple size={16} weight="bold" /> Export CSV
                     </button>
-                    <button
-                        onClick={handleOpenAddModal}
-                        className="bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-600 hover:to-indigo-700 text-white px-5 py-2.5 rounded-xl font-bold transition text-xs flex items-center gap-1.5 active:scale-95 shadow-md shadow-sky-500/10 shrink-0"
-                    >
-                        <Plus size={16} weight="bold" /> Tambah Pemetaan
-                    </button>
+                    {userRole === 1 && (
+                        <button
+                            onClick={handleOpenAddModal}
+                            className="bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-600 hover:to-indigo-700 text-white px-5 py-2.5 rounded-xl font-bold transition text-xs flex items-center gap-1.5 active:scale-95 shadow-md shadow-sky-500/10 shrink-0"
+                        >
+                            <Plus size={16} weight="bold" /> Tambah Pemetaan
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -330,19 +342,20 @@ const MappingListScreen: React.FC = () => {
                         </p>
                     </div>
                 ) : (
-                    <div className="overflow-x-auto">
+                    <>
+                    <div className="hidden md:block overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                             <thead>
-                                <tr className="border-b border-slate-200 bg-slate-50 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                                <tr className="border-b border-slate-200 bg-slate-50 text-[10px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
                                     <th className="py-4 px-6">No.</th>
                                     <th className="py-4 px-6">Mikrotik (Core Router)</th>
                                     <th className="py-4 px-6">OLT Node</th>
                                     <th className="py-4 px-6">ODC Node</th>
                                     <th className="py-4 px-6">ODP Node (Area FAT)</th>
-                                    <th className="py-4 px-6 text-center">Aksi</th>
+                                    {userRole === 1 && <th className="py-4 px-6 text-center">Aksi</th>}
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100 text-xs text-slate-700 font-medium">
+                            <tbody className="divide-y divide-slate-100 text-xs text-slate-700 font-medium whitespace-nowrap">
                                 {filtered.map((mapping, idx) => (
                                     <tr key={mapping.mapping_id} className="hover:bg-slate-50/70 transition-colors">
                                         <td className="py-4 px-6 text-slate-400 font-mono text-xs">{idx + 1}</td>
@@ -382,29 +395,91 @@ const MappingListScreen: React.FC = () => {
                                         </td>
 
                                         {/* Actions */}
-                                        <td className="py-4 px-6">
-                                            <div className="flex items-center justify-center gap-1.5">
+                                        {userRole === 1 && (
+                                            <td className="py-4 px-6">
+                                                <div className="flex items-center justify-center gap-1.5">
+                                                    <button
+                                                        onClick={() => handleOpenEditModal(mapping)}
+                                                        className="p-2 bg-slate-50 border border-slate-200 hover:border-sky-300 hover:bg-sky-50 text-slate-500 hover:text-sky-600 rounded-xl transition active:scale-95"
+                                                        title="Ubah Pemetaan"
+                                                    >
+                                                        <PencilLine size={16} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDelete(mapping.mapping_id, mapping.odp_node?.name || 'Mapping')}
+                                                        className="p-2 bg-slate-50 border border-slate-200 hover:border-rose-300 hover:bg-rose-50 text-slate-500 hover:text-rose-600 rounded-xl transition active:scale-95"
+                                                        title="Hapus Pemetaan"
+                                                    >
+                                                        <Trash size={16} />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        )}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* --- MOBILE CARD VIEW --- */}
+                    <div className="md:hidden divide-y divide-slate-100">
+                        {filtered.map((mapping, idx) => (
+                            <div key={mapping.mapping_id} className="p-4 space-y-3 hover:bg-slate-50 transition-colors">
+                                <div className="flex justify-between items-start gap-2">
+                                    <div className="flex items-center gap-2">
+                                        <div className="bg-slate-100 text-slate-500 font-mono text-[10px] px-1.5 py-0.5 rounded font-bold">
+                                            #{idx + 1}
+                                        </div>
+                                        <span className="font-bold text-slate-800 text-sm">
+                                            Pemetaan {mapping.odp_node?.name || 'ODP'}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                        {userRole === 1 && (
+                                            <>
                                                 <button
                                                     onClick={() => handleOpenEditModal(mapping)}
-                                                    className="p-2 bg-slate-50 border border-slate-200 hover:border-sky-300 hover:bg-sky-50 text-slate-500 hover:text-sky-600 rounded-xl transition active:scale-95"
+                                                    className="p-2 bg-slate-50 border border-slate-200 hover:border-sky-300 hover:bg-sky-50 text-slate-500 hover:text-sky-600 rounded-lg transition active:scale-95"
                                                     title="Ubah Pemetaan"
                                                 >
                                                     <PencilLine size={16} />
                                                 </button>
                                                 <button
                                                     onClick={() => handleDelete(mapping.mapping_id, mapping.odp_node?.name || 'Mapping')}
-                                                    className="p-2 bg-slate-50 border border-slate-200 hover:border-rose-300 hover:bg-rose-50 text-slate-500 hover:text-rose-600 rounded-xl transition active:scale-95"
+                                                    className="p-2 bg-slate-50 border border-slate-200 hover:border-rose-300 hover:bg-rose-50 text-slate-500 hover:text-rose-600 rounded-lg transition active:scale-95"
                                                     title="Hapus Pemetaan"
                                                 >
                                                     <Trash size={16} />
                                                 </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-2 text-[11px] font-medium text-slate-600">
+                                    <div className="flex justify-between items-center">
+                                        <span className="flex items-center gap-1.5 text-slate-500"><Cpu size={14} className="text-purple-500" weight="fill"/> Core Router</span>
+                                        <span className="font-bold text-slate-800">{mapping.router?.router_name || '-'}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <span className="flex items-center gap-1.5 text-slate-500"><Database size={14} className="text-red-500" weight="fill"/> Node OLT</span>
+                                        <span className="font-bold text-slate-700">{mapping.olt_node?.name || '-'}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <span className="flex items-center gap-1.5 text-slate-500"><HardDrives size={14} className="text-orange-500" weight="fill"/> Node ODC</span>
+                                        <span className="font-bold text-slate-700">{mapping.odc_node?.name || '-'}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center pt-2 border-t border-slate-200/50">
+                                        <span className="flex items-center gap-1.5 text-slate-500 font-bold"><Broadcast size={14} className="text-blue-500" weight="fill"/> Area ODP</span>
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-sky-50 border border-sky-100 text-sky-700 font-bold text-[10px]">
+                                            📍 {mapping.odp_node?.name || '-'}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
                     </div>
+                    </>
                 )}
             </div>
 

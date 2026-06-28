@@ -12,6 +12,7 @@ type Router struct {
 	RouterName       string    `gorm:"type:varchar(120)" json:"router_name"`
 	RouterAddress    string    `gorm:"type:varchar(120)" json:"router_address"`
 	RouterPort       int       `gorm:"type:int" json:"router_port"`
+	RouterRestPort   int       `gorm:"type:int" json:"router_rest_port"`
 	RouterStatus     string    `gorm:"type:varchar(120)" json:"router_status"`
 	RouterType       string    `gorm:"type:varchar(120)" json:"router_type"`
 	RouterRemoteType string    `gorm:"type:varchar(120)" json:"router_remote_type"`

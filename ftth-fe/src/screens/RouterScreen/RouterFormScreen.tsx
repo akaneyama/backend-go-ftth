@@ -32,6 +32,7 @@ const RouterFormScreen: React.FC = () => {
         router_name: '',
         router_address: '',
         router_port: 8728,
+        router_rest_port: 80,
         router_status: 'Disable', 
         router_type: 'MikroTik',
         router_remote_type: 'API',
@@ -57,6 +58,7 @@ const RouterFormScreen: React.FC = () => {
                             router_name: data.router_name,
                             router_address: data.router_address,
                             router_port: data.router_port,
+                            router_rest_port: data.router_rest_port || 80,
                             router_status: data.router_status,
                             router_type: data.router_type,
                             router_remote_type: data.router_remote_type,
@@ -86,7 +88,8 @@ const RouterFormScreen: React.FC = () => {
         try {
             const payload = {
                 ...formData,
-                router_port: Number(formData.router_port)
+                router_port: Number(formData.router_port),
+                router_rest_port: Number(formData.router_rest_port)
             };
 
             const response = await api.post('/api/routers/test-connection', payload);
@@ -148,7 +151,8 @@ if (response.data.status === 'success') {
         try {
             const payload = {
                 ...formData,
-                router_port: Number(formData.router_port)
+                router_port: Number(formData.router_port),
+                router_rest_port: Number(formData.router_rest_port)
             };
 
             if (isEditMode) {
@@ -218,9 +222,15 @@ if (response.data.status === 'success') {
                                     <input type="text" name="router_address" value={formData.router_address} onChange={handleChange} required placeholder="192.168.88.1" className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 outline-none transition-all" />
                                 </div>
 
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">Port API</label>
-                                    <input type="number" name="router_port" value={formData.router_port} onChange={handleChange} required className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 outline-none transition-all" />
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">Port API</label>
+                                        <input type="number" name="router_port" value={formData.router_port} onChange={handleChange} required className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 outline-none transition-all" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">Port REST</label>
+                                        <input type="number" name="router_rest_port" value={formData.router_rest_port} onChange={handleChange} required className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 outline-none transition-all" />
+                                    </div>
                                 </div>
 
                                 <div>
@@ -280,7 +290,7 @@ if (response.data.status === 'success') {
                                 <div>
                                      <label className="block text-sm font-medium text-slate-700 mb-1">Metode Remote</label>
                                      <div className="flex gap-4 mt-2">
-                                        {['API', 'API-SSL'].map((type) => (
+                                        {['API', 'API-SSL', 'REST-HTTP', 'REST-HTTPS'].map((type) => (
                                             <label key={type} className="flex items-center cursor-pointer group">
                                                 <input type="radio" name="router_remote_type" value={type} checked={formData.router_remote_type === type} onChange={handleChange} className="w-4 h-4 text-sky-600 focus:ring-sky-500 cursor-pointer" />
                                                 <span className="ml-2 text-sm text-slate-700 group-hover:text-sky-600 transition-colors">{type}</span>

@@ -17,6 +17,7 @@ import {
     ListBullets,
     ArrowsClockwise
 } from '@phosphor-icons/react';
+import PaginationControl from '../../components/ui/PaginationControl';
 
 interface DeviceInfo {
     deviceId: string;
@@ -64,7 +65,7 @@ const GenieACSScreen: React.FC = () => {
     const [listError, setListError] = useState<string | null>(null);
     const [listSearchQuery, setListSearchQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 10;
+    const [itemsPerPage, setItemsPerPage] = useState(10);
 
     // Form state
     const [newSsid, setNewSsid] = useState('');
@@ -217,7 +218,7 @@ const GenieACSScreen: React.FC = () => {
             </div>
 
             {/* TABS */}
-            <div className="flex gap-1 bg-slate-100/60 p-1.5 rounded-2xl w-fit border border-slate-200/50">
+            <div className="flex flex-wrap gap-1 bg-slate-100/60 p-1.5 rounded-2xl w-fit border border-slate-200/50">
                 <button
                     onClick={() => setActiveTab('search')}
                     className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition duration-200 ${
@@ -585,10 +586,10 @@ const GenieACSScreen: React.FC = () => {
                         </div>
                     )}
 
-                    <div className="overflow-x-auto">
+                    <div className="hidden lg:block overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                             <thead>
-                                <tr className="border-b border-slate-200 bg-slate-50 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                                <tr className="border-b border-slate-200 bg-slate-50 text-[10px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
                                     <th className="py-4 px-6">Identitas Perangkat</th>
                                     <th className="py-4 px-6">Model & Manufaktur</th>
                                     <th className="py-4 px-6">Jaringan / IP</th>
@@ -597,7 +598,7 @@ const GenieACSScreen: React.FC = () => {
                                     <th className="py-4 px-6">Informasi Sistem</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100 text-xs text-slate-700 font-medium">
+                            <tbody className="divide-y divide-slate-100 text-xs text-slate-700 font-medium whitespace-nowrap">
                                 {loadingList ? (
                                     <tr>
                                         <td colSpan={6} className="py-12 text-center text-slate-400">
@@ -663,26 +664,80 @@ const GenieACSScreen: React.FC = () => {
                         </table>
                     </div>
 
+                    {/* --- MOBILE CARD VIEW --- */}
+                    <div className="lg:hidden divide-y divide-slate-100">
+                        {loadingList ? (
+                            <div className="py-12 text-center text-slate-400">
+                                <div className="flex flex-col items-center gap-3">
+                                    <div className="h-8 w-8 rounded-full border-4 border-slate-200 border-t-sky-500 animate-spin"></div>
+                                    <span className="font-semibold">Memuat daftar perangkat...</span>
+                                </div>
+                            </div>
+                        ) : filteredDevices.length === 0 ? (
+                            <div className="py-12 text-center text-slate-400">
+                                <RouterIcon size={32} className="mx-auto mb-2 opacity-50" />
+                                Tidak ada perangkat yang cocok dengan pencarian Anda.
+                            </div>
+                        ) : (
+                            paginatedDevices.map((dev) => {
+                                const isOnline = dev.lastInform ? ((new Date().getTime() - new Date(dev.lastInform).getTime()) / (1000 * 60)) < 30 : false;
+                                return (
+                                    <div key={dev.deviceId} className="p-4 space-y-3 hover:bg-slate-50/70 transition-colors">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <span className="font-bold text-slate-800 text-sm block">{dev.deviceSN}</span>
+                                                <span className="text-[10px] text-slate-400 font-mono block">{dev.macAddress}</span>
+                                            </div>
+                                            <span className={`inline-flex items-center justify-center min-w-[50px] px-2 py-1 rounded-full text-[9px] font-bold tracking-wide uppercase shadow-sm ${isOnline ? 'bg-emerald-500 text-white shadow-emerald-200/50' : 'bg-slate-200 text-slate-600 shadow-slate-200/50'}`}>
+                                                {isOnline ? 'Online' : 'Offline'}
+                                            </span>
+                                        </div>
+                                        
+                                        <div className="grid grid-cols-2 gap-2 text-[10px]">
+                                            <div className="space-y-1">
+                                                <span className="text-slate-500 font-semibold block">{dev.manufaktur}</span>
+                                                <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-slate-500 font-bold text-[9px] uppercase">
+                                                    PON: {dev.ponMode || '-'}
+                                                </span>
+                                            </div>
+                                            <div className="space-y-1 text-right">
+                                                <span className="font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100 block ml-auto w-fit">{dev.ipAddress}</span>
+                                                <span className="inline-flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100 ml-auto w-fit">
+                                                    <WifiHigh size={12} /> {dev.ssid}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 space-y-2 text-[10px]">
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-slate-400 font-bold">Kondisi:</span>
+                                                <div className="flex gap-2">
+                                                    <span className="flex items-center gap-1 font-semibold text-slate-600"><Lightning size={12} className="text-amber-500"/> {dev.rxPower ? `${dev.rxPower} dBm` : '-'}</span>
+                                                    <span className="flex items-center gap-1 font-semibold text-slate-600"><Thermometer size={12} className="text-rose-500"/> {dev.temp ? `${dev.temp}°C` : '-'}</span>
+                                                </div>
+                                            </div>
+                                            <div className="flex justify-between items-center border-t border-slate-200/50 pt-2">
+                                                <span className="text-slate-400 font-bold">Terakhir:</span>
+                                                <span className="font-mono text-slate-500">{dev.lastInform || '-'}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })
+                        )}
+                    </div>
+
                     {/* Pagination Controls */}
                     {!loadingList && totalPages > 1 && (
-                        <div className="px-6 py-4 bg-white border-t border-slate-100 flex items-center justify-between">
-                            <button
-                                disabled={currentPage === 1}
-                                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                                className="px-4 py-2 text-sm font-semibold text-slate-600 bg-slate-50 border border-slate-200 rounded-lg hover:bg-slate-100 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                            >
-                                Sebelumnya
-                            </button>
-                            <span className="text-sm font-medium text-slate-500">
-                                Halaman <span className="text-slate-800 font-bold">{currentPage}</span> dari {totalPages}
-                            </span>
-                            <button
-                                disabled={currentPage === totalPages}
-                                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                                className="px-4 py-2 text-sm font-semibold text-slate-600 bg-slate-50 border border-slate-200 rounded-lg hover:bg-slate-100 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                            >
-                                Selanjutnya
-                            </button>
+                        <div className="p-4 bg-white border-t border-slate-100">
+                            <PaginationControl
+                                currentPage={currentPage}
+                                totalPages={totalPages}
+                                totalItems={filteredDevices.length}
+                                itemsPerPage={itemsPerPage}
+                                onPageChange={setCurrentPage}
+                                onLimitChange={setItemsPerPage}
+                            />
                         </div>
                     )}
                 </div>

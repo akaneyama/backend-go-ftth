@@ -18,8 +18,11 @@ type Client struct {
 	Latitude      float64        `gorm:"type:double;column:latitude" json:"latitude"`
 	Longitude     float64        `gorm:"type:double;column:longitude" json:"longitude"`
 	IPAddress     string         `gorm:"type:varchar(50);column:ip_address" json:"ip_address"`
+	IPPoolID      *int           `gorm:"column:ip_pool_id" json:"ip_pool_id,omitempty"`
 	OnuSN         string         `gorm:"type:varchar(50);column:onu_sn" json:"onu_sn"`
 	PppoeUsername string         `gorm:"type:varchar(50);column:pppoe_username" json:"pppoe_username"`
+	PppoePassword string         `gorm:"type:varchar(100);column:pppoe_password" json:"pppoe_password"`
+	PppoeProfile  string         `gorm:"type:varchar(100);column:pppoe_profile" json:"pppoe_profile"`
 	RxPower       string         `gorm:"type:varchar(20);column:rx_power" json:"rx_power"`
 	CreatedAt     time.Time      `json:"created_at"`
 	UpdatedAt     time.Time      `json:"updated_at"`
